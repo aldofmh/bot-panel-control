@@ -3,95 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Control Avanzado del Bot de Reservas</title>
+    <title>Bot de Reservas Definitivo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://rsms.me/inter/inter.css');
-        body { font-family: 'Inter', sans-serif; scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        .tab-active { border-color: #2563eb; color: #2563eb; background-color: #eff6ff; }
         .animate-fade-in { animation: fadeIn 0.5s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        .log-entry { animation: slideIn 0.3s ease-out; }
-        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
     </style>
 </head>
 <body class="bg-slate-100">
     <div id="app" class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
-        
-        <header class="text-center mb-10">
-            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">🤖 Bot de Reservas Avanzado</h1>
-            <p class="mt-2 text-lg text-slate-600">Configura, prueba y programa tus reservas en un solo lugar.</p>
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">🤖 Bot de Reservas Definitivo</h1>
+            <p class="mt-2 text-lg text-slate-600">La solución final para tus reservas.</p>
         </header>
 
-        <div class="space-y-8">
-            <!-- CONFIGURACIÓN -->
-            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 animate-fade-in">
-                <h3 class="text-2xl font-bold mb-6 text-slate-800">1. Configuración de la Reserva</h3>
-                
-                <!-- Selector de Deporte -->
-                <div class="mb-6">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Deporte</label>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        <button v-for="sport in sports" @click="selectSport(sport.key)" :class="{'ring-2 ring-blue-500 bg-blue-50': config.activity_name === sport.name, 'bg-slate-50 hover:bg-slate-100': config.activity_name !== sport.name}" class="p-3 rounded-lg text-center font-semibold transition-all duration-200">
-                            {{ sport.name }}
-                        </button>
-                    </div>
-                </div>
+        <div class="mb-6 border-b border-slate-200">
+            <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                <button v-for="tab in tabs" @click="activeTab = tab.name" :class="[activeTab === tab.name ? 'tab-active' : 'border-transparent', 'whitespace-nowrap py-4 px-3 border-b-2 font-medium text-sm transition-colors duration-200 rounded-t-lg']">
+                    {{ tab.label }}
+                </button>
+            </nav>
+        </div>
 
-                <!-- Detalles -->
-                <div class="grid md:grid-cols-3 gap-6">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700">Cancha / Espacio</label>
-                        <select v-model="config.space_name" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2">
-                            <option v-for="space in currentSportConfig.spaces" :value="space">{{ space }}</option>
-                        </select>
-                    </div>
-                     <div>
-                        <label class="block text-sm font-medium text-slate-700">Fecha de Reserva</label>
-                        <input type="date" v-model="config.date" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700">Número de Jugadores</label>
-                        <input type="number" v-model.number="config.number_players" class="mt-1 block w-full rounded-md border-slate-300 shadow-sm p-2">
-                    </div>
-                </div>
-                 <div class="mt-6">
-                    <label class="block text-sm font-medium text-slate-700 mb-2">Horarios a Reservar (separados por coma)</label>
-                    <input type="text" v-model="config.target_hours_str" placeholder="Ej: 07:00, 08:00, 19:00" class="w-full p-2 border rounded-md shadow-sm">
+        <!-- Pestaña de Configuración -->
+        <div v-show="activeTab === 'config'" class="space-y-8 animate-fade-in">
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h3 class="text-xl font-bold mb-4">1. Credenciales de Acceso</h3>
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div><label class="block text-sm font-medium">Email</label><input type="email" v-model="credentials.email" class="mt-1 w-full p-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium">Contraseña</label><input type="password" v-model="credentials.password" class="mt-1 w-full p-2 border rounded"></div>
                 </div>
             </div>
-
-            <!-- EJECUCIÓN -->
-            <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 animate-fade-in" style="animation-delay: 100ms;">
-                <h3 class="text-2xl font-bold mb-6 text-slate-800">2. Ejecutar y Programar</h3>
-                <div class="grid md:grid-cols-2 gap-6 items-start">
-                    <!-- Acciones -->
-                    <div class="space-y-4">
-                        <button @click="executeBot(false)" :disabled="isBusy" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-700 transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-                            Ejecutar Inmediatamente (Prueba)
-                        </button>
-                        <button @click="executeBot(true)" :disabled="isBusy" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg hover:bg-blue-700 transition shadow-lg disabled:opacity-50 flex items-center justify-center gap-2">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                            Programar para las 12:00 AM
-                        </button>
-                        <div id="status-box" class="mt-4 text-center text-slate-800 p-4 bg-slate-50 rounded-lg font-medium transition-all duration-300" :class="status.color">
-                            {{ status.text }}
-                            <div v-if="status.text.includes('Esperando')" id="countdown" class="text-2xl font-mono font-bold mt-1"></div>
-                        </div>
-                    </div>
-                    <!-- Logs -->
-                    <div class="bg-slate-900 rounded-lg p-4 h-80 overflow-y-auto font-mono text-sm text-white">
-                        <div v-for="log in logs" class="log-entry" :class="log.color" v-html="log.message"></div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h3 class="text-xl font-bold mb-4">2. Detalles de la Reserva</h3>
+                <div class="mb-4"><label class="block text-sm font-medium mb-2">Deporte</label>
+                    <div class="grid grid-cols-3 md:grid-cols-5 gap-3">
+                        <button v-for="sport in sports" @click="selectSport(sport.key)" :class="{'ring-2 ring-blue-500 bg-blue-50': config.activity_name === sport.name, 'bg-slate-100 hover:bg-slate-200': config.activity_name !== sport.name}" class="p-3 rounded-lg font-semibold transition">{{ sport.name }}</button>
                     </div>
                 </div>
+                <div class="grid md:grid-cols-3 gap-6">
+                    <div><label class="block text-sm font-medium">Cancha/Espacio</label><select v-model="config.space_name" class="mt-1 w-full p-2 border rounded"><option v-for="space in currentSportConfig.spaces">{{ space }}</option></select></div>
+                    <div><label class="block text-sm font-medium">Fecha de Reserva</label><input type="date" v-model="config.date" class="mt-1 w-full p-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium"># Jugadores</label><input type="number" v-model.number="config.number_players" class="mt-1 w-full p-2 border rounded"></div>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-2xl shadow-lg">
+                <h3 class="text-xl font-bold mb-4">3. Horarios por Prioridad</h3>
+                <div class="grid grid-cols-4 sm:grid-cols-8 gap-3">
+                    <button v-for="hour in availableHours" @click="toggleHour(hour)" :class="{'ring-2 ring-blue-500 bg-blue-500 text-white': config.target_hours.includes(hour), 'bg-slate-100 hover:bg-slate-200': !config.target_hours.includes(hour)}" class="p-3 rounded-lg font-semibold transition relative">
+                        {{ hour }}
+                        <span v-if="config.target_hours.indexOf(hour) !== -1" class="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center border-2 border-white">{{ config.target_hours.indexOf(hour) + 1 }}</span>
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-end"><button @click="saveConfig" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700 transition">{{ saveButtonText }}</button></div>
+        </div>
+
+        <!-- Pestaña de Ejecución -->
+        <div v-show="activeTab === 'execute'" class="animate-fade-in bg-white p-6 rounded-2xl shadow-lg">
+            <h3 class="text-2xl font-bold mb-6">Ejecutar y Monitorear</h3>
+            <div class="grid md:grid-cols-2 gap-6 items-start">
+                <div class="space-y-4">
+                    <button @click="executeBot(false)" :disabled="isBusy" class="w-full bg-green-600 text-white font-bold py-3 rounded-lg shadow-lg disabled:opacity-50">Ejecutar Ahora (Prueba)</button>
+                    <button @click="executeBot(true)" :disabled="isBusy" class="w-full bg-blue-600 text-white font-bold py-3 rounded-lg shadow-lg disabled:opacity-50">Programar para las 12:00 AM</button>
+                    <div id="status-box" class="mt-4 text-center p-4 rounded-lg font-medium" :class="status.color">{{ status.text }}<div v-if="status.text.includes('Esperando')" id="countdown" class="text-2xl font-mono font-bold mt-1"></div></div>
+                </div>
+                <div class="bg-slate-900 rounded-lg p-4 h-80 overflow-y-auto font-mono text-sm text-white"><div v-for="log in logs" class="whitespace-pre-wrap" :class="log.color" v-html="log.message"></div></div>
             </div>
         </div>
     </div>
 
     <script src="https://unpkg.com/vue@3"></script>
     <script>
-    const { createApp, ref, computed, onMounted, nextTick } = Vue;
-
+    const { createApp, ref, computed, onMounted } = Vue;
     const SPORTS_DATA = {
         padel: { name: 'Pádel', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4 },
         ajedrez: { name: 'Ajedrez', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2 },
@@ -99,77 +86,86 @@
         basquetbol: { name: 'Básquetbol', spaces: ['Cancha de Básquetbol'], players: 5 },
         voleibol: { name: 'Voleibol', spaces: ['Cancha de Voleibol'], players: 6 },
     };
-
     createApp({
         setup() {
-            const config = ref({
+            const activeTab = ref('config');
+            const tabs = [{ name: 'config', label: 'Configuración' }, { name: 'execute', label: 'Ejecutar' }];
+            const defaultConfig = {
                 date: new Date(Date.now() + 1728e5).toISOString().split("T")[0],
-                target_hours_str: "07:00, 08:00",
-                activity_name: 'Pádel',
-                space_name: 'Cancha uno',
-                number_players: 4
-            });
-
-            const sports = ref(Object.entries(SPORTS_DATA).map(([key, value]) => ({ key, ...value })));
-            const currentSportConfig = computed(() => SPORTS_DATA[Object.keys(SPORTS_DATA).find(k => SPORTS_DATA[k].name === config.value.activity_name) || 'padel']);
-
-            const status = ref({ text: "Listo.", color: "bg-slate-50" });
+                target_hours: ["07:00", "08:00"], activity_name: 'Pádel',
+                space_name: 'Cancha uno', number_players: 4, team_name: "Equipo 1"
+            };
+            const defaultCredentials = { email: "aldofmh@gmail.com", password: "2970Ferr!" };
+            
+            const config = ref(JSON.parse(localStorage.getItem('botConfig')) || defaultConfig);
+            const credentials = ref(JSON.parse(localStorage.getItem('botCredentials')) || defaultCredentials);
+            
+            const status = ref({ text: "Listo para la acción.", color: "bg-slate-100" });
             const logs = ref([]);
             const isBusy = ref(false);
-            let countdownInterval = null;
+            const saveButtonText = ref('Guardar Configuración');
+            const availableHours = Array.from({length: 15}, (_, i) => `${String(i + 7).padStart(2, '0')}:00`);
+            const currentSportConfig = computed(() => SPORTS_DATA[Object.keys(SPORTS_DATA).find(k => SPORTS_DATA[k].name === config.value.activity_name) || 'padel']);
 
             const logger = {
                 info: (msg) => logs.value.push({ message: `✅ ${msg}`, color: 'text-green-400' }),
                 error: (msg) => logs.value.push({ message: `❌ ${msg}`, color: 'text-red-400' }),
                 warn: (msg) => logs.value.push({ message: `⚠️ ${msg}`, color: 'text-yellow-400' }),
-                step: (msg) => logs.value.push({ message: `➡️ <strong>${msg}</strong>`, color: 'text-blue-400' }),
+                step: (msg) => logs.value.push({ message: `\n➡️ <strong>${msg}</strong>`, color: 'text-blue-400' }),
             };
 
-            const selectSport = (sportKey) => {
-                const sportData = SPORTS_DATA[sportKey];
-                config.value.activity_name = sportData.name;
-                config.value.space_name = sportData.spaces[0];
-                config.value.number_players = sportData.players;
+            const selectSport = (key) => {
+                const data = SPORTS_DATA[key];
+                config.value.activity_name = data.name;
+                config.value.space_name = data.spaces[0];
+                config.value.number_players = data.players;
             };
 
-            const executeBot = async () => {
+            const toggleHour = (hour) => {
+                const index = config.value.target_hours.indexOf(hour);
+                if (index > -1) config.value.target_hours.splice(index, 1);
+                else config.value.target_hours.push(hour);
+            };
+
+            const saveConfig = () => {
+                localStorage.setItem('botConfig', JSON.stringify(config.value));
+                localStorage.setItem('botCredentials', JSON.stringify(credentials.value));
+                saveButtonText.value = '¡Guardado!';
+                setTimeout(() => { saveButtonText.value = 'Guardar Configuración'; }, 2000);
+            };
+            
+            const runBotLogic = async () => {
                 isBusy.value = true;
                 logs.value = [];
-                const countdownEl = document.getElementById('countdown');
-                if(countdownEl) countdownEl.textContent = "";
                 status.value = { text: "Ejecutando...", color: "bg-blue-100 text-blue-800" };
-                
-                const botConfig = { ...config.value, target_hours: config.value.target_hours_str.split(",").map(h => h.trim()) };
                 logger.step("--- INICIANDO BOT ---");
-                
                 try {
                     logger.step("1. Obteniendo token de sesión...");
-                    const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: "aldofmh@gmail.com", password: "2970Ferr!" }) });
+                    const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials.value) });
+                    if (!authRes.ok) throw new Error(`Login fallido - Status: ${authRes.status}`);
                     const authData = await authRes.json();
-                    if (!authData.token) throw new Error("Login fallido: " + (authData.message || "Credenciales incorrectas"));
+                    if (!authData.token) throw new Error("Login fallido: Token no recibido.");
                     const { token, user } = authData;
                     logger.info("Token y ID de usuario obtenidos.");
 
                     logger.step("2. Obteniendo IDs de sistema...");
                     const activities = await (await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/activity', { headers: { 'Authorization': `Bearer ${token}` } })).json();
-                    const activity = activities.find(a => a.name === botConfig.activity_name);
-                    if (!activity) throw new Error(`Actividad "${botConfig.activity_name}" no encontrada.`);
-                    const space = activity.spaces.find(s => s.name === botConfig.space_name);
-                    if (!space) throw new Error(`Espacio "${botConfig.space_name}" no encontrado.`);
+                    const activity = activities.find(a => a.name === config.value.activity_name);
+                    const space = activity.spaces.find(s => s.name === config.value.space_name);
                     logger.info(`IDs -> Actividad: ${activity._id}, Espacio: ${space._id}`);
 
-                    logger.step(`3. Verificando horarios para ${botConfig.date}...`);
-                    const scheduleData = await (await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${botConfig.date}`, { headers: { 'Authorization': `Bearer ${token}` } })).json();
+                    logger.step(`3. Verificando horarios para ${config.value.date}...`);
+                    const scheduleData = await (await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${config.value.date}`, { headers: { 'Authorization': `Bearer ${token}` } })).json();
                     const availableSchedules = scheduleData.available || [];
-                    logger.info(`Horarios disponibles: ${availableSchedules.length > 0 ? availableSchedules.join(', ') : 'Ninguno'}`);
-
-                    logger.step("4. Iniciando ciclo de reservas...");
+                    logger.info(`Disponibles: ${availableSchedules.join(', ') || 'Ninguno'}`);
+                    
                     let successCount = 0;
-                    for (const hour of botConfig.target_hours) {
+                    for (const hour of config.value.target_hours) {
+                        logger.step(`4. Procesando reserva para las ${hour}...`);
                         const timeSlot = `${hour}:00-${String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0')}:00:00`;
                         if (availableSchedules.includes(timeSlot)) {
-                            logger.info(`Horario ${hour} está disponible. Reservando...`);
-                            const payload = { solicitante_id: user._id, activity_id: activity._id, space_id: space._id, date: botConfig.date, time_slot: timeSlot, teamName: "1", number_players: botConfig.number_players, responsive: true, equipment: false };
+                            const payload = { solicitante_id: user._id, activity_id: activity._id, space_id: space._id, date: config.value.date, time_slot: timeSlot, number_players: config.value.number_players, responsive: true, equipment: false };
+                            if (config.value.activity_name !== 'Ajedrez') payload.teamName = config.value.team_name;
                             const res = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/application', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
                             const resData = await res.json();
                             if(res.ok) { logger.info(`¡RESERVA CONFIRMADA para ${hour}! Folio: ${resData.folio}`); successCount++; } else { logger.error(`Fallo al reservar ${hour}: ${resData.message}`);}
@@ -177,39 +173,27 @@
                         await new Promise(r => setTimeout(r, 1000));
                     }
                     status.value = { text: `Proceso finalizado: ${successCount} reserva(s) exitosa(s).`, color: "bg-green-100 text-green-800" };
-                } catch(e) {
+                } catch (e) {
                     status.value = { text: `Error crítico: ${e.message}`, color: "bg-red-100 text-red-800" };
-                    logger.error(`Error: ${e.message}`);
+                    logger.error(`${e.message}`);
                 } finally {
                     isBusy.value = false;
                 }
             };
-            
-            const schedule = () => {
-                isBusy.value = true;
-                logs.value = [];
-                clearInterval(countdownInterval);
-                const midnight = new Date();
-                midnight.setHours(24, 0, 0, 0);
 
-                countdownInterval = setInterval(() => {
-                    const now = new Date();
-                    const t = midnight.getTime() - now.getTime();
-                    if (t <= 0) {
-                        clearInterval(countdownInterval);
-                        executeBot();
-                        return;
-                    }
-                    const h = Math.floor(t / 36e5);
-                    const m = Math.floor(t % 36e5 / 6e4);
-                    const s = Math.floor(t % 6e4 / 1e3);
-                    document.getElementById('countdown').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-                }, 1000);
-
-                status.value = { text: "Programado. Esperando a la medianoche...", color: "bg-blue-100 text-blue-800" };
+            const executeBot = (isScheduled) => {
+                if(isScheduled) {
+                    const midnight = new Date();
+                    midnight.setHours(24, 0, 0, 0);
+                    const timeToMidnight = midnight.getTime() - new Date().getTime();
+                    status.value = { text: "Programado. Esperando a la medianoche...", color: "bg-blue-100 text-blue-800" };
+                    setTimeout(runBotLogic, timeToMidnight);
+                } else {
+                    runBotLogic();
+                }
             };
 
-            return { config, status, logs, isBusy, sports, currentSportConfig, selectSport, executeBot, schedule };
+            return { activeTab, tabs, config, credentials, status, logs, isBusy, sports, currentSportConfig, availableHours, saveButtonText, selectSport, toggleHour, saveConfig, executeBot };
         }
     }).mount('#app');
     </script>
