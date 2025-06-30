@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot de Reservas Definitivo</title>
+    <title>Bot de Reservas Definitivo v8.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://rsms.me/inter/inter.css');
@@ -14,9 +14,9 @@
     </style>
 </head>
 <body class="bg-slate-100">
-    <div id="app" class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    <div id="app" class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8" v-cloak>
         <header class="text-center mb-8">
-            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">🤖 Bot de Reservas Definitivo</h1>
+            <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">🤖 Bot de Reservas v8.0</h1>
             <p class="mt-2 text-lg text-slate-600">La solución final para tus reservas.</p>
         </header>
 
@@ -29,12 +29,12 @@
         </div>
 
         <!-- Pestaña de Configuración -->
-        <div v-show="activeTab === 'config'" class="space-y-8 animate-fade-in">
+        <div v-if="activeTab === 'config'" class="space-y-8 animate-fade-in">
             <div class="bg-white p-6 rounded-2xl shadow-lg">
                 <h3 class="text-xl font-bold mb-4">1. Credenciales de Acceso</h3>
                 <div class="grid md:grid-cols-2 gap-6">
-                    <div><label class="block text-sm font-medium">Email</label><input type="email" v-model="credentials.email" class="mt-1 w-full p-2 border rounded"></div>
-                    <div><label class="block text-sm font-medium">Contraseña</label><input type="password" v-model="credentials.password" class="mt-1 w-full p-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium">Email</label><input type="email" v-model="credentials.email" class="mt-1 w-full p-2 border rounded-md"></div>
+                    <div><label class="block text-sm font-medium">Contraseña</label><input type="password" v-model="credentials.password" class="mt-1 w-full p-2 border rounded-md"></div>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-lg">
@@ -45,9 +45,9 @@
                     </div>
                 </div>
                 <div class="grid md:grid-cols-3 gap-6">
-                    <div><label class="block text-sm font-medium">Cancha/Espacio</label><select v-model="config.space_name" class="mt-1 w-full p-2 border rounded"><option v-for="space in currentSportConfig.spaces">{{ space }}</option></select></div>
-                    <div><label class="block text-sm font-medium">Fecha de Reserva</label><input type="date" v-model="config.date" class="mt-1 w-full p-2 border rounded"></div>
-                    <div><label class="block text-sm font-medium"># Jugadores</label><input type="number" v-model.number="config.number_players" class="mt-1 w-full p-2 border rounded"></div>
+                    <div><label class="block text-sm font-medium">Cancha/Espacio</label><select v-model="config.space_name" class="mt-1 w-full p-2 border rounded-md"><option v-for="space in currentSportConfig.spaces">{{ space }}</option></select></div>
+                    <div><label class="block text-sm font-medium">Fecha de Reserva</label><input type="date" v-model="config.date" class="mt-1 w-full p-2 border rounded-md"></div>
+                    <div><label class="block text-sm font-medium"># Jugadores</label><input type="number" v-model.number="config.number_players" class="mt-1 w-full p-2 border rounded-md"></div>
                 </div>
             </div>
             <div class="bg-white p-6 rounded-2xl shadow-lg">
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Pestaña de Ejecución -->
-        <div v-show="activeTab === 'execute'" class="animate-fade-in bg-white p-6 rounded-2xl shadow-lg">
+        <div v-if="activeTab === 'execute'" class="animate-fade-in bg-white p-6 rounded-2xl shadow-lg">
             <h3 class="text-2xl font-bold mb-6">Ejecutar y Monitorear</h3>
             <div class="grid md:grid-cols-2 gap-6 items-start">
                 <div class="space-y-4">
@@ -80,38 +80,52 @@
     <script>
     const { createApp, ref, computed, onMounted } = Vue;
     const SPORTS_DATA = {
-        padel: { name: 'Pádel', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4 },
-        ajedrez: { name: 'Ajedrez', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2 },
-        futbol: { name: 'Fútbol', spaces: ['Cancha de fútbol 7'], players: 7 },
-        basquetbol: { name: 'Básquetbol', spaces: ['Cancha de Básquetbol'], players: 5 },
-        voleibol: { name: 'Voleibol', spaces: ['Cancha de Voleibol'], players: 6 },
+        padel: { name: 'Pádel', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4, team_name: "Equipo Padel" },
+        ajedrez: { name: 'Ajedrez', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2, team_name: "Jugador" },
+        futbol: { name: 'Fútbol', spaces: ['Cancha de fútbol 7'], players: 7, team_name: "Equipo Fut" },
+        basquetbol: { name: 'Básquetbol', spaces: ['Cancha de Básquetbol'], players: 5, team_name: "Equipo Basquet" },
+        voleibol: { name: 'Voleibol', spaces: ['Cancha de Voleibol'], players: 6, team_name: "Equipo Voley" },
     };
     createApp({
         setup() {
+            const app = ref(null);
             const activeTab = ref('config');
             const tabs = [{ name: 'config', label: 'Configuración' }, { name: 'execute', label: 'Ejecutar' }];
             const defaultConfig = {
                 date: new Date(Date.now() + 1728e5).toISOString().split("T")[0],
                 target_hours: ["07:00", "08:00"], activity_name: 'Pádel',
-                space_name: 'Cancha uno', number_players: 4, team_name: "Equipo 1"
+                space_name: 'Cancha uno', number_players: 4,
             };
             const defaultCredentials = { email: "aldofmh@gmail.com", password: "2970Ferr!" };
             
-            const config = ref(JSON.parse(localStorage.getItem('botConfig')) || defaultConfig);
-            const credentials = ref(JSON.parse(localStorage.getItem('botCredentials')) || defaultCredentials);
+            const config = ref({});
+            const credentials = ref({});
             
-            const status = ref({ text: "Listo para la acción.", color: "bg-slate-100" });
+            const status = ref({ text: "Listo.", color: "bg-slate-100" });
             const logs = ref([]);
             const isBusy = ref(false);
             const saveButtonText = ref('Guardar Configuración');
             const availableHours = Array.from({length: 15}, (_, i) => `${String(i + 7).padStart(2, '0')}:00`);
-            const currentSportConfig = computed(() => SPORTS_DATA[Object.keys(SPORTS_DATA).find(k => SPORTS_DATA[k].name === config.value.activity_name) || 'padel']);
+            const currentSportConfig = computed(() => {
+                const sportKey = Object.keys(SPORTS_DATA).find(k => SPORTS_DATA[k].name === config.value.activity_name);
+                return SPORTS_DATA[sportKey || 'padel'];
+            });
+
+            onMounted(() => {
+                try {
+                    config.value = { ...defaultConfig, ...JSON.parse(localStorage.getItem('botConfig')) };
+                    credentials.value = { ...defaultCredentials, ...JSON.parse(localStorage.getItem('botCredentials')) };
+                } catch(e) {
+                    config.value = defaultConfig;
+                    credentials.value = defaultCredentials;
+                }
+            });
 
             const logger = {
-                info: (msg) => logs.value.push({ message: `✅ ${msg}`, color: 'text-green-400' }),
-                error: (msg) => logs.value.push({ message: `❌ ${msg}`, color: 'text-red-400' }),
-                warn: (msg) => logs.value.push({ message: `⚠️ ${msg}`, color: 'text-yellow-400' }),
-                step: (msg) => logs.value.push({ message: `\n➡️ <strong>${msg}</strong>`, color: 'text-blue-400' }),
+                info: (msg) => logs.value.unshift({ message: `✅ ${msg}`, color: 'text-green-400' }),
+                error: (msg) => logs.value.unshift({ message: `❌ ${msg}`, color: 'text-red-400' }),
+                warn: (msg) => logs.value.unshift({ message: `⚠️ ${msg}`, color: 'text-yellow-400' }),
+                step: (msg) => logs.value.unshift({ message: `\n➡️ <strong>${msg}</strong>`, color: 'text-blue-400' }),
             };
 
             const selectSport = (key) => {
@@ -165,7 +179,9 @@
                         const timeSlot = `${hour}:00-${String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0')}:00:00`;
                         if (availableSchedules.includes(timeSlot)) {
                             const payload = { solicitante_id: user._id, activity_id: activity._id, space_id: space._id, date: config.value.date, time_slot: timeSlot, number_players: config.value.number_players, responsive: true, equipment: false };
-                            if (config.value.activity_name !== 'Ajedrez') payload.teamName = config.value.team_name;
+                            if (config.value.activity_name !== 'Ajedrez') {
+                                payload.teamName = SPORTS_DATA[Object.keys(SPORTS_DATA).find(k => SPORTS_DATA[k].name === config.value.activity_name) || 'padel'].team_name;
+                            }
                             const res = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/application', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
                             const resData = await res.json();
                             if(res.ok) { logger.info(`¡RESERVA CONFIRMADA para ${hour}! Folio: ${resData.folio}`); successCount++; } else { logger.error(`Fallo al reservar ${hour}: ${resData.message}`);}
@@ -180,7 +196,7 @@
                     isBusy.value = false;
                 }
             };
-
+            
             const executeBot = (isScheduled) => {
                 if(isScheduled) {
                     const midnight = new Date();
