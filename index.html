@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot de Reservas v9.0 (FINAL)</title>
+    <title>Bot de Reservas v10 (FINAL)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://rsms.me/inter/inter.css');
@@ -43,20 +43,28 @@
         </div>
     </div>
     
-    <!-- Scripts movidos al final del body para asegurar que el DOM esté cargado -->
     <script src="https://unpkg.com/vue@3"></script>
     <script>
     const { createApp, ref, computed, onMounted } = Vue;
-    const SPORTS_DATA = { padel: { name: 'Pádel', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4, team_name: "Equipo Padel" }, ajedrez: { name: 'Ajedrez', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2, team_name: "Jugador" }, futbol: { name: 'Fútbol', spaces: ['Cancha de fútbol 7'], players: 7, team_name: "Equipo Fut" }, basquetbol: { name: 'Básquetbol', spaces: ['Cancha de Básquetbol'], players: 5, team_name: "Equipo Basquet" }, voleibol: { name: 'Voleibol', spaces: ['Cancha de Voleibol'], players: 6, team_name: "Equipo Voley" } };
     
-    createApp({
+    const SPORTS_DATA = { 
+        padel: { name: 'Pádel', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4, team_name: "Equipo Padel" }, 
+        ajedrez: { name: 'Ajedrez', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2, team_name: "Jugador" }, 
+        futbol: { name: 'Fútbol', spaces: ['Cancha de fútbol 7'], players: 7, team_name: "Equipo Fut" }, 
+        basquetbol: { name: 'Básquetbol', spaces: ['Cancha de Básquetbol'], players: 5, team_name: "Equipo Basquet" }, 
+        voleibol: { name: 'Voleibol', spaces: ['Cancha de Voleibol'], players: 6, team_name: "Equipo Voley" } 
+    };
+
+    const app = createApp({
         setup() {
             const activeTab = ref('config');
             const tabs = [{ name: 'config', label: 'Configuración' }, { name: 'execute', label: 'Ejecutar' }];
             const defaultConfig = { date: new Date(Date.now() + 1728e5).toISOString().split("T")[0], target_hours: ["07:00", "08:00"], activity_name: 'Pádel', space_name: 'Cancha uno', number_players: 4 };
             const defaultCredentials = { email: "aldofmh@gmail.com", password: "2970Ferr!" };
-            const config = ref({});
-            const credentials = ref({});
+            
+            const config = ref({ ...defaultConfig });
+            const credentials = ref({ ...defaultCredentials });
+            
             const status = ref({ text: "Listo.", color: "bg-slate-100" });
             const logs = ref([]);
             const isBusy = ref(false);
@@ -70,11 +78,21 @@
             });
 
             onMounted(() => {
-                try { config.value = { ...defaultConfig, ...JSON.parse(localStorage.getItem('botConfig')) }; } catch (e) { config.value = defaultConfig; }
-                try { credentials.value = { ...defaultCredentials, ...JSON.parse(localStorage.getItem('botCredentials')) }; } catch (e) { credentials.value = defaultCredentials; }
+                try {
+                    const savedConfig = localStorage.getItem('botConfig');
+                    if (savedConfig) config.value = JSON.parse(savedConfig);
+                    const savedCreds = localStorage.getItem('botCredentials');
+                    if (savedCreds) credentials.value = JSON.parse(savedCreds);
+                } catch (e) { console.error("Error al cargar configuración guardada:", e); }
+                document.getElementById('app').style.display = 'block'; // Muestra la app después de cargar
             });
 
-            const logger = { info: (msg) => logs.value.unshift({ message: `✅ ${msg}`, color: 'text-green-400' }), error: (msg) => logs.value.unshift({ message: `❌ ${msg}`, color: 'text-red-400' }), warn: (msg) => logs.value.unshift({ message: `⚠️ ${msg}`, color: 'text-yellow-400' }), step: (msg) => logs.value.unshift({ message: `\n➡️ <strong>${msg}</strong>`, color: 'text-blue-400' }) };
+            const logger = { 
+                info: (msg) => logs.value.unshift({ message: `✅ ${msg}`, color: 'text-green-400' }), 
+                error: (msg) => logs.value.unshift({ message: `❌ ${msg}`, color: 'text-red-400' }), 
+                warn: (msg) => logs.value.unshift({ message: `⚠️ ${msg}`, color: 'text-yellow-400' }), 
+                step: (msg) => logs.value.unshift({ message: `\n➡️ <strong>${msg}</strong>`, color: 'text-blue-400' }) 
+            };
             const selectSport = (key) => { const data = SPORTS_DATA[key]; config.value.activity_name = data.name; config.value.space_name = data.spaces[0]; config.value.number_players = data.players; };
             const toggleHour = (hour) => { const index = config.value.target_hours.indexOf(hour); if (index > -1) config.value.target_hours.splice(index, 1); else config.value.target_hours.push(hour); };
             const saveConfig = () => { localStorage.setItem('botConfig', JSON.stringify(config.value)); localStorage.setItem('botCredentials', JSON.stringify(credentials.value)); saveButtonText.value = '¡Guardado!'; setTimeout(() => { saveButtonText.value = 'Guardar Configuración'; }, 2000); };
@@ -124,22 +142,20 @@
             };
 
             const executeBot = (isScheduled) => {
-                let countdownInterval;
                 if(isScheduled) {
                     const midnight = new Date();
                     midnight.setHours(24, 0, 0, 0);
                     const timeToMidnight = midnight.getTime() - new Date().getTime();
                     status.value = { text: "Programado. Esperando a la medianoche...", color: "bg-blue-100 text-blue-800" };
-                    countdownInterval = setInterval(() => {
+                    let countdownInterval = setInterval(() => {
                         const t = midnight.getTime() - new Date().getTime();
                         if (t <= 0) { clearInterval(countdownInterval); return; }
                         const h = Math.floor(t / 36e5), m = Math.floor(t % 36e5 / 6e4), s = Math.floor(t % 6e4 / 1e3);
-                        document.getElementById('countdown').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                        const countdownEl = document.getElementById('countdown');
+                        if(countdownEl) countdownEl.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                     }, 1000);
-                    setTimeout(runBotLogic, timeToMidnight);
-                } else {
-                    runBotLogic();
-                }
+                    setTimeout(() => { clearInterval(countdownInterval); runBotLogic(); }, timeToMidnight);
+                } else { runBotLogic(); }
             };
 
             return { activeTab, tabs, config, credentials, status, logs, isBusy, sports, currentSportConfig, availableHours, saveButtonText, selectSport, toggleHour, saveConfig, executeBot };
