@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot de Reservas Automático</title>
+    <title>Bot Reservas Inteligente - Parque Hidalgo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         
         :root {
             --primary: #2563eb;
@@ -28,14 +28,14 @@
         .card {
             background: white;
             border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
             overflow: hidden;
             transition: all 0.3s ease;
         }
         
         .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            transform: translateY(-3px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
         }
         
         .btn {
@@ -44,12 +44,12 @@
             justify-content: center;
             font-weight: 600;
             border-radius: 12px;
-            transition: all 0.2s ease;
             padding: 14px 28px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             font-size: 16px;
             border: none;
             cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
         
         .btn-primary {
@@ -60,7 +60,7 @@
         .btn-primary:hover {
             background: #1d4ed8;
             transform: translateY(-3px);
-            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2);
+            box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
         }
         
         .btn-success {
@@ -68,9 +68,9 @@
             color: white;
         }
         
-        .btn-success:hover {
-            background: #059669;
-            transform: translateY(-3px);
+        .btn-warning {
+            background: var(--warning);
+            color: white;
         }
         
         .log-box {
@@ -81,13 +81,6 @@
             border-radius: 12px;
             padding: 20px;
             font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
-            box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-        }
-        
-        .tab-active {
-            background: var(--primary);
-            color: white !important;
-            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3), 0 2px 4px -1px rgba(37, 99, 235, 0.2);
         }
         
         .spinner {
@@ -99,13 +92,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        .status-box {
-            border-radius: 12px;
-            padding: 20px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
         .input-field {
             background: #f9fafb;
             border: 2px solid #e5e7eb;
@@ -113,6 +99,7 @@
             padding: 14px 18px;
             font-size: 16px;
             transition: all 0.3s ease;
+            width: 100%;
         }
         
         .input-field:focus {
@@ -122,33 +109,44 @@
             background: white;
         }
         
-        .sport-btn {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 20px 10px;
-            border-radius: 12px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            cursor: pointer;
-            border: 2px solid transparent;
+        .header-gradient {
+            background: linear-gradient(135deg, #2563eb, #1e40af);
+            color: white;
+            padding: 40px 0;
+            border-radius: 0 0 30px 30px;
         }
         
         .time-slot {
             padding: 14px;
             border-radius: 12px;
             font-weight: 600;
-            transition: all 0.3s ease;
             cursor: pointer;
             position: relative;
+            transition: all 0.3s ease;
         }
         
-        .header-gradient {
-            background: linear-gradient(135deg, #2563eb, #1e40af);
+        .status-box {
+            border-radius: 12px;
+            padding: 20px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 12px;
+            margin: 0 4px;
+        }
+        
+        .tab-active {
+            background: var(--primary);
             color: white;
-            padding: 30px 0;
-            border-radius: 0 0 30px 30px;
+            box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
         }
     </style>
 </head>
@@ -156,36 +154,36 @@
     <div id="app">
         <!-- Encabezado -->
         <div class="header-gradient shadow-xl">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="max-w-5xl mx-auto px-4 text-center">
                 <div class="flex justify-center mb-4">
                     <div class="bg-white bg-opacity-20 w-24 h-24 rounded-full flex items-center justify-center">
                         <i class="fas fa-robot text-white text-4xl"></i>
                     </div>
                 </div>
-                <h1 class="text-3xl md:text-4xl font-bold mb-3">Bot de Reservas Automático</h1>
-                <p class="text-xl opacity-90 max-w-2xl mx-auto">Automatiza tus reservas en el Parque Cultural Hidalguense</p>
+                <h1 class="text-3xl md:text-4xl font-bold mb-3">Bot de Reservas Inteligente</h1>
+                <p class="text-xl opacity-90 max-w-2xl mx-auto">Reservas reales en el Parque Cultural Hidalguense</p>
             </div>
         </div>
 
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <!-- Navegación por pestañas -->
+        <div class="max-w-5xl mx-auto px-4 py-8">
+            <!-- Navegación -->
             <div class="card overflow-hidden mb-8">
-                <div class="flex bg-gray-100 p-1">
-                    <button v-for="tab in tabs" 
-                            @click="activeTab = tab.name" 
-                            :class="[
-                                activeTab === tab.name ? 'tab-active' : 'text-gray-700 hover:bg-gray-200',
-                                'flex-1 py-4 px-6 text-center font-medium transition-colors duration-200 relative rounded-lg m-1'
-                            ]">
+                <div class="flex bg-gray-100 p-2">
+                    <div v-for="tab in tabs" 
+                         @click="activeTab = tab.name" 
+                         :class="[
+                             activeTab === tab.name ? 'tab-active text-white' : 'text-gray-700 hover:bg-gray-200',
+                             'tab-button'
+                         ]">
                         {{ tab.label }}
-                    </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Pestaña de Configuración -->
-            <div v-if="activeTab === 'config'" class="space-y-8">
+            <div v-if="activeTab === 'config'">
                 <!-- Credenciales -->
-                <div class="card p-6">
+                <div class="card p-6 mb-6">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
                         <i class="fas fa-user-lock text-blue-500 mr-3"></i> Credenciales de Acceso
                     </h3>
@@ -193,14 +191,14 @@
                         <div>
                             <label class="block text-gray-700 font-medium mb-3">Email</label>
                             <input type="email" v-model="credentials.email" 
-                                   class="input-field w-full"
+                                   class="input-field"
                                    placeholder="tu@email.com">
                         </div>
                         <div>
                             <label class="block text-gray-700 font-medium mb-3">Contraseña</label>
                             <div class="relative">
                                 <input :type="showPassword ? 'text' : 'password'" v-model="credentials.password" 
-                                       class="input-field w-full pr-10"
+                                       class="input-field pr-10"
                                        placeholder="••••••••">
                                 <button @click="showPassword = !showPassword" 
                                         class="absolute top-4 right-4 text-gray-500 hover:text-gray-700">
@@ -212,22 +210,22 @@
                 </div>
                 
                 <!-- Detalles de la reserva -->
-                <div class="card p-6">
+                <div class="card p-6 mb-6">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
                         <i class="fas fa-calendar-check text-blue-500 mr-3"></i> Detalles de la Reserva
                     </h3>
                     
-                    <div class="mb-8">
+                    <div class="mb-6">
                         <label class="block text-gray-700 font-medium mb-4">Deporte</label>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
                             <div v-for="sport in sports" 
                                  @click="selectSport(sport.key)" 
                                  :class="{
                                     'border-blue-500 bg-blue-50 text-blue-700': config.activity_name === sport.name,
                                     'border-gray-200 bg-gray-100 hover:bg-gray-200 text-gray-700': config.activity_name !== sport.name
                                  }" 
-                                 class="sport-btn border-2">
-                                <span class="text-3xl mb-2">{{ sport.emoji }}</span>
+                                 class="time-slot border-2 text-center">
+                                <span class="text-2xl block mb-2">{{ sport.emoji }}</span>
                                 <span>{{ sport.name }}</span>
                             </div>
                         </div>
@@ -237,7 +235,7 @@
                         <div>
                             <label class="block text-gray-700 font-medium mb-3">Cancha/Espacio</label>
                             <select v-model="config.space_name" 
-                                    class="input-field w-full">
+                                    class="input-field">
                                 <option v-for="space in currentSportConfig.spaces" :value="space">{{ space }}</option>
                             </select>
                         </div>
@@ -245,35 +243,32 @@
                         <div>
                             <label class="block text-gray-700 font-medium mb-3">Fecha</label>
                             <input type="date" v-model="config.date" 
-                                   class="input-field w-full">
+                                   class="input-field">
                         </div>
                         
                         <div>
                             <label class="block text-gray-700 font-medium mb-3"># Jugadores</label>
                             <input type="number" v-model.number="config.number_players" 
-                                   class="input-field w-full"
+                                   class="input-field"
                                    :min="currentSportConfig.players" :max="currentSportConfig.players * 2">
-                            <p class="text-sm text-gray-500 mt-2">Recomendado: {{ currentSportConfig.players }} jugadores</p>
                         </div>
                     </div>
                 </div>
                 
-                <!-- Horarios por prioridad -->
-                <div class="card p-6">
+                <!-- Horarios -->
+                <div class="card p-6 mb-6">
                     <h3 class="text-2xl font-bold mb-6 text-gray-800 flex items-center">
-                        <i class="fas fa-clock text-blue-500 mr-3"></i> Horarios por Prioridad
+                        <i class="fas fa-clock text-blue-500 mr-3"></i> Horarios Preferidos
                     </h3>
                     
-                    <p class="text-gray-600 mb-6">Selecciona tus horarios preferidos en orden de prioridad:</p>
-                    
-                    <div class="grid grid-cols-3 sm:grid-cols-5 gap-4">
+                    <div class="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
                         <div v-for="hour in availableHours" 
                              @click="toggleHour(hour)" 
                              :class="{
                                 'bg-blue-500 text-white': config.target_hours.includes(hour),
                                 'bg-gray-100 hover:bg-gray-200': !config.target_hours.includes(hour)
                              }" 
-                             class="time-slot">
+                             class="time-slot text-center">
                             {{ hour }}
                             <span v-if="config.target_hours.indexOf(hour) !== -1" 
                                   class="absolute -top-2 -right-2 w-7 h-7 bg-blue-600 text-white text-sm rounded-full flex items-center justify-center border-2 border-white">
@@ -283,8 +278,8 @@
                     </div>
                 </div>
                 
-                <!-- Botones de acción -->
-                <div class="flex justify-between mt-8">
+                <!-- Botones -->
+                <div class="flex justify-between">
                     <button @click="resetConfig" class="btn bg-yellow-500 hover:bg-yellow-600 text-white">
                         <i class="fas fa-redo-alt mr-2"></i> Restablecer
                     </button>
@@ -298,37 +293,54 @@
             <div v-if="activeTab === 'execute'">
                 <div class="card p-8">
                     <h3 class="text-3xl font-bold mb-8 text-gray-800 flex items-center">
-                        <i class="fas fa-play-circle text-blue-500 mr-3"></i> Ejecutar y Monitorear
+                        <i class="fas fa-play-circle text-blue-500 mr-3"></i> Ejecutar Reservas
                     </h3>
                     
                     <div class="grid lg:grid-cols-2 gap-10 items-start">
                         <div class="space-y-6">
-                            <button @click="executeBot(false)" 
-                                    :disabled="isBusy"
-                                    class="btn btn-primary w-full py-4 flex items-center justify-center disabled:opacity-70">
-                                <i class="fas fa-bolt mr-3"></i> Ejecutar Ahora (Prueba)
-                                <i v-if="isBusy" class="fas fa-spinner spinner ml-3"></i>
-                            </button>
+                            <div class="bg-blue-50 border-2 border-blue-200 rounded-xl p-5">
+                                <h4 class="text-xl font-bold mb-4 text-blue-800">
+                                    <i class="fas fa-bolt mr-2"></i> Ejecución Inmediata
+                                </h4>
+                                <p class="text-gray-700 mb-4">
+                                    Prueba el bot con reservas reales en espacios normalmente disponibles (como ajedrez)
+                                </p>
+                                <button @click="executeBot(false)" 
+                                        :disabled="isBusy"
+                                        class="btn btn-primary w-full py-4 flex items-center justify-center disabled:opacity-70">
+                                    <i class="fas fa-bolt mr-3"></i> Ejecutar Ahora
+                                    <i v-if="isBusy" class="fas fa-spinner spinner ml-3"></i>
+                                </button>
+                            </div>
                             
-                            <button @click="executeBot(true)" 
-                                    :disabled="isBusy"
-                                    class="btn btn-primary w-full py-4 flex items-center justify-center disabled:opacity-70">
-                                <i class="fas fa-clock mr-3"></i> Programar para las 12:00 AM
-                                <i v-if="isBusy" class="fas fa-spinner spinner ml-3"></i>
-                            </button>
+                            <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-5">
+                                <h4 class="text-xl font-bold mb-4 text-purple-800">
+                                    <i class="fas fa-clock mr-2"></i> Programar Reserva
+                                </h4>
+                                <p class="text-gray-700 mb-4">
+                                    Programa el bot para que haga reservas automáticamente a las 00:00 (hora local)
+                                </p>
+                                <button @click="executeBot(true)" 
+                                        :disabled="isBusy"
+                                        class="btn bg-purple-600 hover:bg-purple-700 text-white w-full py-4 flex items-center justify-center disabled:opacity-70">
+                                    <i class="fas fa-clock mr-3"></i> Programar para 00:00
+                                    <i v-if="isBusy" class="fas fa-spinner spinner ml-3"></i>
+                                </button>
+                            </div>
                             
-                            <button v-if="scheduledExecution" 
-                                    @click="cancelScheduledExecution"
-                                    class="btn bg-red-500 hover:bg-red-600 text-white w-full py-4 flex items-center justify-center">
-                                <i class="fas fa-times-circle mr-3"></i> Cancelar Ejecución
-                            </button>
+                            <div v-if="scheduledExecution" class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5">
+                                <button @click="cancelScheduledExecution"
+                                        class="btn bg-red-500 hover:bg-red-600 text-white w-full py-4 flex items-center justify-center">
+                                    <i class="fas fa-times-circle mr-3"></i> Cancelar Programación
+                                </button>
+                            </div>
                             
-                            <div class="status-box mt-4 p-5 rounded-xl" :class="status.color">
+                            <div class="status-box bg-blue-50 border-2 border-blue-200 text-blue-800">
                                 <div class="font-bold flex items-center text-lg">
-                                    <i :class="statusIcon" class="mr-3"></i> Estado del Bot:
+                                    <i :class="statusIcon" class="mr-3"></i> Estado:
                                 </div>
                                 <div class="mt-3 text-lg">{{ status.text }}</div>
-                                <div v-if="status.text.includes('Esperando')" id="countdown" class="text-3xl font-mono font-bold mt-3 text-blue-700"></div>
+                                <div v-if="status.text.includes('Programado')" id="countdown" class="text-3xl font-mono font-bold mt-3 text-blue-700"></div>
                             </div>
                         </div>
                         
@@ -364,16 +376,9 @@
         </div>
         
         <footer class="mt-16 py-8 text-center text-gray-600">
-            <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <p class="text-lg">Bot de Reservas v2.0 &copy; {{ new Date().getFullYear() }} - Automatiza tus reservas</p>
-                <div class="mt-4 flex justify-center space-x-4">
-                    <button class="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition">
-                        <i class="fab fa-github mr-2"></i> Código Fuente
-                    </button>
-                    <button class="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition">
-                        <i class="fas fa-question-circle mr-2"></i> Soporte
-                    </button>
-                </div>
+            <div class="max-w-5xl mx-auto px-4">
+                <p class="text-lg">Bot de Reservas Inteligente v2.0 &copy; {{ new Date().getFullYear() }}</p>
+                <p class="mt-2 text-sm">Diseñado para el Parque Cultural Hidalguense</p>
             </div>
         </footer>
     </div>
@@ -439,14 +444,14 @@
             const defaultConfig = { 
                 date: new Date(Date.now() + 1728e5).toISOString().split("T")[0], 
                 target_hours: ["07:00", "08:00"], 
-                activity_name: 'Pádel', 
-                space_name: 'Cancha uno', 
-                number_players: 4 
+                activity_name: 'Ajedrez', // Por defecto para pruebas
+                space_name: 'Mesa uno', 
+                number_players: 2 
             };
             
             const defaultCredentials = { 
-                email: "aldofmh@gmail.com", 
-                password: "2970Ferr!" 
+                email: "tu@email.com", 
+                password: "tucontraseña" 
             };
             
             // Variables reactivas
@@ -483,7 +488,7 @@
             // Configuración del deporte actual
             const currentSportConfig = computed(() => {
                 const sportKey = Object.keys(SPORTS_DATA).find(k => SPORTS_DATA[k].name === config.value.activity_name);
-                return sportKey ? SPORTS_DATA[sportKey] : SPORTS_DATA.padel;
+                return sportKey ? SPORTS_DATA[sportKey] : SPORTS_DATA.ajedrez;
             });
 
             // Al montar el componente
@@ -548,13 +553,13 @@
                     localStorage.setItem('botConfig', JSON.stringify(config.value)); 
                     localStorage.setItem('botCredentials', JSON.stringify(credentials.value)); 
                     saveButtonText.value = '¡Guardado!'; 
-                    logger.info("Configuración guardada correctamente");
+                    logger.info("✅ Configuración guardada correctamente");
                     
                     setTimeout(() => { 
                         saveButtonText.value = 'Guardar Configuración'; 
                     }, 2000); 
                 } catch (e) {
-                    logger.error("Error al guardar: " + e.message);
+                    logger.error("❌ Error al guardar: " + e.message);
                 }
             };
             
@@ -563,7 +568,7 @@
                 if (confirm("¿Restablecer a valores predeterminados?")) {
                     config.value = { ...defaultConfig };
                     credentials.value = { ...defaultCredentials };
-                    logger.info("Configuración restablecida");
+                    logger.info("🔄 Configuración restablecida");
                 }
             };
             
@@ -581,7 +586,7 @@
                 URL.revokeObjectURL(url);
             };
             
-            // Lógica principal del bot
+            // Lógica principal del bot (reservas reales)
             const runBotLogic = async () => {
                 isBusy.value = true; 
                 logs.value = [];
@@ -594,35 +599,101 @@
                 logger.step("--- INICIANDO BOT DE RESERVAS ---");
                 
                 try {
-                    // Simulamos un inicio de sesión exitoso
-                    logger.step("1. Iniciando sesión en el sistema...");
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    logger.info("✅ Autenticación exitosa. Sesión iniciada correctamente.");
+                    // 1. Iniciar sesión
+                    logger.step("➡️ 1. Iniciando sesión en el sistema...");
+                    const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(credentials.value)
+                    });
                     
-                    // Simulamos obtención de datos
-                    logger.step("2. Obteniendo información de actividades...");
-                    await new Promise(resolve => setTimeout(resolve, 1200));
-                    logger.info(`✅ Actividad seleccionada: ${config.value.activity_name}`);
-                    logger.info(`✅ Espacio seleccionado: ${config.value.space_name}`);
+                    if (!authRes.ok) {
+                        const errorText = await authRes.text();
+                        throw new Error(`Error en autenticación: ${authRes.status} - ${errorText}`);
+                    }
                     
-                    // Simulamos consulta de disponibilidad
-                    logger.step(`3. Verificando disponibilidad para ${config.value.date}...`);
-                    await new Promise(resolve => setTimeout(resolve, 1800));
-                    logger.info("✅ Horarios disponibles verificados");
+                    const authData = await authRes.json();
+                    if (!authData.token) throw new Error("No se recibió token de autenticación");
+                    const { token, user } = authData;
+                    logger.info("✅ Autenticación exitosa. Token obtenido.");
                     
-                    // Simulamos reservas
+                    // 2. Obtener información de actividades
+                    logger.step("➡️ 2. Obteniendo información de actividades...");
+                    const activitiesRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/activity', { 
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (!activitiesRes.ok) {
+                        const errorText = await activitiesRes.text();
+                        throw new Error(`Error al obtener actividades: ${activitiesRes.status} - ${errorText}`);
+                    }
+                    
+                    const activities = await activitiesRes.json();
+                    const activity = activities.find(a => a.name === config.value.activity_name);
+                    if (!activity) throw new Error(`Actividad no encontrada: ${config.value.activity_name}`);
+                    const space = activity.spaces.find(s => s.name === config.value.space_name);
+                    if (!space) throw new Error(`Espacio no encontrado: ${config.value.space_name}`);
+                    logger.info(`✅ IDs obtenidos: Actividad ${activity._id}, Espacio ${space._id}`);
+                    
+                    // 3. Verificar disponibilidad
+                    logger.step(`➡️ 3. Verificando disponibilidad para ${config.value.date}...`);
+                    const scheduleRes = await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${config.value.date}`, { 
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (!scheduleRes.ok) {
+                        const errorText = await scheduleRes.text();
+                        throw new Error(`Error al obtener horarios: ${scheduleRes.status} - ${errorText}`);
+                    }
+                    
+                    const scheduleData = await scheduleRes.json();
+                    const availableSchedules = scheduleData.available || [];
+                    logger.info(`✅ Horarios disponibles: ${availableSchedules.length > 0 ? availableSchedules.join(', ') : 'Ninguno'}`);
+                    
+                    // 4. Crear reservas
                     let successCount = 0;
                     for (const hour of config.value.target_hours) {
-                        logger.step(`4. Procesando reserva para ${hour}...`);
-                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        logger.step(`➡️ 4. Procesando reserva para ${hour}...`);
+                        const timeSlot = `${hour}:00-${String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0')}:00:00`;
                         
-                        if (Math.random() > 0.3) {
-                            const folio = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
-                            logger.info(`✅ ¡Reserva confirmada para ${hour}! Folio: ${folio}`);
-                            successCount++;
-                        } else {
-                            logger.warn(`⚠️ Horario ${hour} no disponible. Probando siguiente...`);
+                        if (availableSchedules.includes(timeSlot)) {
+                            const payload = { 
+                                solicitante_id: user._id, 
+                                activity_id: activity._id, 
+                                space_id: space._id, 
+                                date: config.value.date, 
+                                time_slot: timeSlot, 
+                                number_players: config.value.number_players, 
+                                responsive: true, 
+                                equipment: false 
+                            };
+                            
+                            if (config.value.activity_name !== 'Ajedrez') {
+                                payload.teamName = currentSportConfig.value.team_name || "Equipo";
+                            }
+                            
+                            const res = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/application', { 
+                                method: 'POST', 
+                                headers: { 
+                                    'Content-Type': 'application/json', 
+                                    'Authorization': `Bearer ${token}` 
+                                }, 
+                                body: JSON.stringify(payload)
+                            });
+                            
+                            const resData = await res.json();
+                            if (res.ok) { 
+                                logger.info(`✅ ¡Reserva confirmada para ${hour}! Folio: ${resData.folio}`); 
+                                successCount++; 
+                            } else { 
+                                logger.error(`❌ Error al reservar ${hour}: ${resData.message || res.statusText}`); 
+                            }
+                        } else { 
+                            logger.warn(`⚠️ Horario ${hour} no disponible.`); 
                         }
+                        
+                        // Pequeña pausa entre solicitudes
+                        await new Promise(r => setTimeout(r, 800));
                     }
                     
                     status.value = { 
@@ -678,6 +749,7 @@
                     const midnight = new Date();
                     midnight.setHours(24, 0, 0, 0);
                     
+                    // Si ya es pasada la medianoche, programar para el día siguiente
                     if (midnight < new Date()) {
                         midnight.setDate(midnight.getDate() + 1);
                     }
