@@ -148,6 +148,44 @@
             color: white;
             box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3);
         }
+        
+        .error-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        
+        .error-panel-content {
+            background: #1e293b;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .error-panel-header {
+            background: #0f172a;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .error-panel-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
     </style>
 </head>
 <body>
@@ -328,7 +366,7 @@
                                 </button>
                             </div>
                             
-                            <div v-if="scheduledExecution" class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5">
+                            <div v-if="hasScheduledExecution" class="bg-yellow-50 border-2 border-yellow-200 rounded-xl p-5">
                                 <button @click="cancelScheduledExecution"
                                         class="btn bg-red-500 hover:bg-red-600 text-white w-full py-4 flex items-center justify-center">
                                     <i class="fas fa-times-circle mr-3"></i> Cancelar Programación
@@ -348,9 +386,12 @@
                             <div class="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-6 text-white shadow-xl">
                                 <div class="flex justify-between items-center mb-5">
                                     <h4 class="font-bold text-xl flex items-center">
-                                        <i class="fas fa-terminal mr-3"></i> Registro de Actividad
+                                        <i class="fas fa-terminal mr-3"></i> Consola de Programador
                                     </h4>
                                     <div class="flex space-x-3">
+                                        <button @click="openErrorPanel" class="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition">
+                                            <i class="fas fa-bug mr-2"></i> Ver Errores
+                                        </button>
                                         <button @click="logs = []" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
                                             <i class="fas fa-trash mr-2"></i> Limpiar
                                         </button>
@@ -362,7 +403,11 @@
                                 <div class="log-box">
                                     <div v-for="(log, index) in logs" :key="index" class="py-3 border-b border-gray-700 last:border-0 flex items-start">
                                         <span :class="log.color" class="mr-3 text-lg mt-1">{{ log.icon }}</span>
-                                        <span :class="log.color">{{ log.message }}</span>
+                                        <div>
+                                            <div :class="log.color" class="font-mono">{{ log.message }}</div>
+                                            <div v-if="log.details" class="text-xs text-gray-400 mt-1">{{ log.details }}</div>
+                                            <div v-if="log.error" class="text-xs text-red-300 mt-1">Error: {{ log.error }}</div>
+                                        </div>
                                     </div>
                                     <div v-if="logs.length === 0" class="text-gray-400 text-center py-10 text-lg">
                                         <i class="fas fa-info-circle mr-2"></i> La consola de actividad está lista
@@ -381,6 +426,37 @@
                 <p class="mt-2 text-sm">Diseñado para el Parque Cultural Hidalguense</p>
             </div>
         </footer>
+        
+        <!-- Panel de Errores -->
+        <div v-if="showErrorPanel" class="error-panel">
+            <div class="error-panel-content">
+                <div class="error-panel-header">
+                    <h3 class="text-xl font-bold text-red-400">
+                        <i class="fas fa-bug mr-2"></i> Errores Detectados
+                    </h3>
+                    <button @click="showErrorPanel = false" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="error-panel-body">
+                    <div class="log-box">
+                        <div v-for="(error, index) in errorLogs" :key="index" 
+                             class="py-3 border-b border-gray-700 last:border-0">
+                            <div class="text-red-400 font-bold">
+                                [{{ error.type }}] {{ error.message }}
+                            </div>
+                            <div class="text-gray-400 text-sm mt-1">
+                                {{ error.timestamp }} | Paso: {{ error.step }}
+                            </div>
+                            <div v-if="error.details" class="text-gray-300 mt-2 whitespace-pre-wrap">{{ error.details }}</div>
+                        </div>
+                        <div v-if="errorLogs.length === 0" class="text-gray-400 text-center py-10 text-lg">
+                            <i class="fas fa-check-circle mr-2"></i> No se han detectado errores
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
     <script>
@@ -422,6 +498,15 @@
             players: 6, 
             team_name: "Equipo Voley" 
         } 
+    };
+    
+    // Constantes de tipos de error
+    const ERROR_TYPES = {
+        AUTH: "Autenticación",
+        SCHEDULE: "Horarios",
+        ACTIVITY: "Actividad",
+        RESERVATION: "Reserva",
+        SYSTEM: "Sistema"
     };
 
     createApp({
@@ -469,6 +554,9 @@
             const saveButtonText = ref('Guardar Configuración');
             const scheduledExecution = ref(null);
             const hasScheduledExecution = ref(false);
+            const showErrorPanel = ref(false);
+            const errorLogs = ref([]);
+            const scheduledTimerId = ref(null);
             
             // Horarios disponibles
             const availableHours = Array.from({length: 15}, (_, i) => {
@@ -521,12 +609,50 @@
                 }
             });
 
-            // Logger
-            const logger = { 
-                info: (msg) => logs.value.push({ message: msg, color: 'text-green-400', icon: '✅' }), 
-                error: (msg) => logs.value.push({ message: msg, color: 'text-red-400', icon: '❌' }), 
-                warn: (msg) => logs.value.push({ message: msg, color: 'text-yellow-400', icon: '⚠️' }), 
-                step: (msg) => logs.value.push({ message: msg, color: 'text-blue-400', icon: '➡️' }) 
+            // Logger mejorado
+            const logger = {
+                info: (msg, details) => logs.value.push({ 
+                    message: msg, 
+                    details,
+                    color: 'text-green-400',
+                    icon: '✅'
+                }), 
+                error: (msg, error, step, type) => {
+                    logs.value.push({ 
+                        message: `❌ ${msg}`, 
+                        error: error?.message || error,
+                        details: error?.response ? error.response : '',
+                        color: 'text-red-400',
+                        icon: '❌'
+                    });
+                    
+                    // Registrar en el panel de errores específicos
+                    if (type) {
+                        errorLogs.value.push({
+                            type: type,
+                            message: msg,
+                            error: error?.message || String(error),
+                            step: step,
+                            details: error?.response ? error.response : '',
+                            timestamp: new Date().toLocaleTimeString()
+                        });
+                    }
+                },
+                warn: (msg) => logs.value.push({ 
+                    message: `⚠️ ${msg}`, 
+                    color: 'text-yellow-400',
+                    icon: '⚠️'
+                }), 
+                step: (msg) => logs.value.push({ 
+                    message: `➡️ ${msg}`, 
+                    color: 'text-blue-400',
+                    icon: '➡️'
+                }) 
+            };
+            
+            // Abrir panel de errores
+            const openErrorPanel = () => {
+                showErrorPanel.value = true;
             };
             
             // Seleccionar deporte
@@ -559,7 +685,7 @@
                         saveButtonText.value = 'Guardar Configuración'; 
                     }, 2000); 
                 } catch (e) {
-                    logger.error("❌ Error al guardar: " + e.message);
+                    logger.error("❌ Error al guardar", e);
                 }
             };
             
@@ -574,7 +700,7 @@
             
             // Exportar logs
             const exportLogs = () => {
-                const logText = logs.value.map(log => `${log.icon} ${log.message}`).join('\n');
+                const logText = logs.value.map(log => `${log.icon} ${log.message}${log.details ? '\n  ' + log.details : ''}${log.error ? '\n  Error: ' + log.error : ''}`).join('\n');
                 const blob = new Blob([logText], { type: 'text/plain' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');
@@ -586,10 +712,38 @@
                 URL.revokeObjectURL(url);
             };
             
+            // Iniciar cuenta regresiva
+            const startCountdown = () => {
+                if (!scheduledExecution.value) return;
+                
+                const updateCountdown = () => {
+                    const now = new Date();
+                    const timeDiff = scheduledExecution.value - now;
+                    
+                    if (timeDiff <= 0) {
+                        clearInterval(scheduledTimerId.value);
+                        return;
+                    }
+                    
+                    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
+                    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
+                    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+                    
+                    const countdownEl = document.getElementById('countdown');
+                    if (countdownEl) {
+                        countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')`;
+                    }
+                };
+                
+                updateCountdown();
+                scheduledTimerId.value = setInterval(updateCountdown, 1000);
+            };
+            
             // Lógica principal del bot (reservas reales)
             const runBotLogic = async () => {
                 isBusy.value = true; 
                 logs.value = [];
+                errorLogs.value = [];
                 status.value = { 
                     text: "Iniciando proceso de reserva...", 
                     color: "bg-blue-50 border-2 border-blue-200 text-blue-800",
@@ -600,7 +754,7 @@
                 
                 try {
                     // 1. Iniciar sesión
-                    logger.step("➡️ 1. Iniciando sesión en el sistema...");
+                    logger.step("1. Iniciando sesión en el sistema...");
                     const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -609,41 +763,53 @@
                     
                     if (!authRes.ok) {
                         const errorText = await authRes.text();
-                        throw new Error(`Error en autenticación: ${authRes.status} - ${errorText}`);
+                        logger.error("Fallo en autenticación", `Status: ${authRes.status} - ${errorText}`, 1, ERROR_TYPES.AUTH);
+                        throw new Error(`Error en autenticación: ${authRes.status}`);
                     }
                     
                     const authData = await authRes.json();
-                    if (!authData.token) throw new Error("No se recibió token de autenticación");
+                    if (!authData.token) {
+                        logger.error("No se recibió token de autenticación", authData, 1, ERROR_TYPES.AUTH);
+                        throw new Error("No se recibió token de autenticación");
+                    }
                     const { token, user } = authData;
                     logger.info("✅ Autenticación exitosa. Token obtenido.");
                     
                     // 2. Obtener información de actividades
-                    logger.step("➡️ 2. Obteniendo información de actividades...");
+                    logger.step("2. Obteniendo información de actividades...");
                     const activitiesRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/activity', { 
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (!activitiesRes.ok) {
                         const errorText = await activitiesRes.text();
-                        throw new Error(`Error al obtener actividades: ${activitiesRes.status} - ${errorText}`);
+                        logger.error("Error al obtener actividades", `Status: ${activitiesRes.status} - ${errorText}`, 2, ERROR_TYPES.ACTIVITY);
+                        throw new Error(`Error al obtener actividades: ${activitiesRes.status}`);
                     }
                     
                     const activities = await activitiesRes.json();
                     const activity = activities.find(a => a.name === config.value.activity_name);
-                    if (!activity) throw new Error(`Actividad no encontrada: ${config.value.activity_name}`);
+                    if (!activity) {
+                        logger.error(`Actividad no encontrada: ${config.value.activity_name}`, activities, 2, ERROR_TYPES.ACTIVITY);
+                        throw new Error(`Actividad no encontrada: ${config.value.activity_name}`);
+                    }
                     const space = activity.spaces.find(s => s.name === config.value.space_name);
-                    if (!space) throw new Error(`Espacio no encontrado: ${config.value.space_name}`);
+                    if (!space) {
+                        logger.error(`Espacio no encontrado: ${config.value.space_name}`, activity.spaces, 2, ERROR_TYPES.ACTIVITY);
+                        throw new Error(`Espacio no encontrado: ${config.value.space_name}`);
+                    }
                     logger.info(`✅ IDs obtenidos: Actividad ${activity._id}, Espacio ${space._id}`);
                     
                     // 3. Verificar disponibilidad
-                    logger.step(`➡️ 3. Verificando disponibilidad para ${config.value.date}...`);
+                    logger.step(`3. Verificando disponibilidad para ${config.value.date}...`);
                     const scheduleRes = await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${config.value.date}`, { 
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (!scheduleRes.ok) {
                         const errorText = await scheduleRes.text();
-                        throw new Error(`Error al obtener horarios: ${scheduleRes.status} - ${errorText}`);
+                        logger.error("Error al obtener horarios", `Status: ${scheduleRes.status} - ${errorText}`, 3, ERROR_TYPES.SCHEDULE);
+                        throw new Error(`Error al obtener horarios: ${scheduleRes.status}`);
                     }
                     
                     const scheduleData = await scheduleRes.json();
@@ -653,8 +819,10 @@
                     // 4. Crear reservas
                     let successCount = 0;
                     for (const hour of config.value.target_hours) {
-                        logger.step(`➡️ 4. Procesando reserva para ${hour}...`);
-                        const timeSlot = `${hour}:00-${String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0')}:00:00`;
+                        logger.step(`4. Procesando reserva para ${hour}...`);
+                        // Formato correcto: "HH:00:00-HH:00:00"
+                        const nextHour = String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0');
+                        const timeSlot = `${hour}:00-${nextHour}:00`;
                         
                         if (availableSchedules.includes(timeSlot)) {
                             const payload = { 
@@ -672,6 +840,7 @@
                                 payload.teamName = currentSportConfig.value.team_name || "Equipo";
                             }
                             
+                            logger.step(`Enviando solicitud de reserva para ${timeSlot}...`);
                             const res = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/application', { 
                                 method: 'POST', 
                                 headers: { 
@@ -681,12 +850,13 @@
                                 body: JSON.stringify(payload)
                             });
                             
-                            const resData = await res.json();
-                            if (res.ok) { 
-                                logger.info(`✅ ¡Reserva confirmada para ${hour}! Folio: ${resData.folio}`); 
-                                successCount++; 
-                            } else { 
-                                logger.error(`❌ Error al reservar ${hour}: ${resData.message || res.statusText}`); 
+                            if (!res.ok) {
+                                const errorText = await res.text();
+                                logger.error(`Error al reservar ${hour}`, `Status: ${res.status} - ${errorText}`, 4, ERROR_TYPES.RESERVATION);
+                            } else {
+                                const resData = await res.json();
+                                logger.info(`✅ ¡Reserva confirmada para ${hour}! Folio: ${resData.folio}`);
+                                successCount++;
                             }
                         } else { 
                             logger.warn(`⚠️ Horario ${hour} no disponible.`); 
@@ -710,49 +880,26 @@
                         color: "bg-red-50 border-2 border-red-200 text-red-800",
                         icon: "fas fa-exclamation-triangle"
                     };
-                    logger.error(`❌ Error crítico: ${e.message}`);
+                    logger.error(`Error crítico: ${e.message}`, e, 0, ERROR_TYPES.SYSTEM);
                 } finally { 
                     isBusy.value = false; 
                     scheduledExecution.value = null;
                     hasScheduledExecution.value = false;
                     localStorage.removeItem('scheduledExecution');
+                    if (scheduledTimerId.value) {
+                        clearInterval(scheduledTimerId.value);
+                        scheduledTimerId.value = null;
+                    }
                 }
-            };
-
-            // Iniciar cuenta regresiva
-            const startCountdown = () => {
-                if (!scheduledExecution.value) return;
-                
-                const countdownInterval = setInterval(() => {
-                    const now = new Date();
-                    const timeDiff = scheduledExecution.value - now;
-                    
-                    if (timeDiff <= 0) {
-                        clearInterval(countdownInterval);
-                        return;
-                    }
-                    
-                    const hours = Math.floor(timeDiff / (1000 * 60 * 60));
-                    const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-                    const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
-                    
-                    const countdownEl = document.getElementById('countdown');
-                    if (countdownEl) {
-                        countdownEl.textContent = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    }
-                }, 1000);
             };
             
             // Ejecutar el bot
             const executeBot = (isScheduled) => {
                 if (isScheduled) {
+                    const now = new Date();
                     const midnight = new Date();
-                    midnight.setHours(24, 0, 0, 0);
-                    
-                    // Si ya es pasada la medianoche, programar para el día siguiente
-                    if (midnight < new Date()) {
-                        midnight.setDate(midnight.getDate() + 1);
-                    }
+                    midnight.setDate(midnight.getDate() + 1);
+                    midnight.setHours(0, 0, 0, 0);
                     
                     scheduledExecution.value = midnight;
                     hasScheduledExecution.value = true;
@@ -768,7 +915,7 @@
                     
                     startCountdown();
                     
-                    const timeToMidnight = midnight - new Date();
+                    const timeToMidnight = midnight - now;
                     setTimeout(() => { 
                         runBotLogic(); 
                     }, timeToMidnight);
@@ -783,6 +930,10 @@
                     scheduledExecution.value = null;
                     hasScheduledExecution.value = false;
                     localStorage.removeItem('scheduledExecution');
+                    if (scheduledTimerId.value) {
+                        clearInterval(scheduledTimerId.value);
+                        scheduledTimerId.value = null;
+                    }
                     status.value = { 
                         text: "❌ Ejecución programada cancelada", 
                         color: "bg-yellow-50 border-2 border-yellow-200 text-yellow-800",
@@ -808,6 +959,9 @@
                 showPassword,
                 scheduledExecution,
                 hasScheduledExecution,
+                showErrorPanel,
+                errorLogs,
+                openErrorPanel,
                 selectSport, 
                 toggleHour, 
                 saveConfig,
