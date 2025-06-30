@@ -897,6 +897,10 @@
                     // 2. Iniciar sesión con manejo mejorado de errores
                     logger.step("2. Iniciando sesión en el sistema...");
                     
+                    // Implementar timeout para evitar bloqueos
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 10000);
+                    
                     const authResponse = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', {
                         method: 'POST',
                         headers: { 
@@ -906,8 +910,9 @@
                         body: JSON.stringify({
                             email: credentials.value.email,
                             password: credentials.value.password
-                        })
-                    });
+                        }),
+                        signal: controller.signal
+                    }).finally(() => clearTimeout(timeoutId));
                     
                     // Manejo detallado de respuestas de autenticación
                     if (authResponse.status === 401) {
@@ -1038,14 +1043,31 @@
                     
                 } catch (e) {
                     // Manejo mejorado de diferentes tipos de errores
-                    if (e.name === "TypeError" && e.message.includes("Failed to fetch")) {
+                    if (e.name === "AbortError") {
+                        status.value = { 
+                            text: "❌ Tiempo de espera agotado", 
+                            color: "bg-red-50 border-2 border-red-200 text-red-800",
+                            icon: "fas fa-exclamation-triangle"
+                        };
+                        logger.error("Tiempo de espera agotado", "El servidor no respondió a tiempo. Intente nuevamente.", 0, ERROR_TYPES.NETWORK);
+                    } 
+                    else if (e.name === "TypeError" && e.message.includes("Failed to fetch")) {
                         status.value = { 
                             text: "❌ Error de conexión", 
                             color: "bg-red-50 border-2 border-red-200 text-red-800",
                             icon: "fas fa-exclamation-triangle"
                         };
-                        logger.error("Error de red", "No se pudo conectar al servidor", 0, ERROR_TYPES.NETWORK);
-                    } else {
+                        logger.error("Error de red", "No se pudo conectar al servidor. Verifique su conexión a Internet.", 0, ERROR_TYPES.NETWORK);
+                    } 
+                    else if (e.message.includes("Load failed")) {
+                        status.value = { 
+                            text: "❌ Error al cargar recurso", 
+                            color: "bg-red-50 border-2 border-red-200 text-red-800",
+                            icon: "fas fa-exclamation-triangle"
+                        };
+                        logger.error("Error al cargar recurso", "El servidor no pudo cargar el recurso solicitado. Verifique la URL.", 0, ERROR_TYPES.NETWORK);
+                    }
+                    else {
                         status.value = { 
                             text: `❌ Error: ${e.message}`, 
                             color: "bg-red-50 border-2 border-red-200 text-red-800",
