@@ -190,6 +190,57 @@
             flex-grow: 1;
         }
         
+        /* Nuevo panel para copiar logs */
+        .copy-panel {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1010;
+        }
+        
+        .copy-panel-content {
+            background: #1e293b;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .copy-textarea {
+            background: #0f172a;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 20px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            resize: none;
+            flex-grow: 1;
+            min-height: 300px;
+            width: 100%;
+        }
+        
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            transition: all 0.3s ease;
+        }
+        
         /* Mejoras para iPad */
         @media (max-width: 768px) {
             .grid-cols-2, .grid-cols-3, .grid-cols-6 {
@@ -208,6 +259,10 @@
             .log-box {
                 min-height: 250px;
                 max-height: 250px;
+            }
+            
+            .copy-panel-content {
+                max-height: 70vh;
             }
         }
     </style>
@@ -419,8 +474,8 @@
                                         <button @click="logs = []" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
                                             <i class="fas fa-trash mr-2"></i> Limpiar
                                         </button>
-                                        <button @click="exportLogs" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
-                                            <i class="fas fa-download mr-2"></i> Exportar
+                                        <button @click="showCopyPanel" class="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition">
+                                            <i class="fas fa-copy mr-2"></i> Copiar Reporte
                                         </button>
                                     </div>
                                 </div>
@@ -480,6 +535,36 @@
                     </div>
                 </div>
             </div>
+        </div>
+        
+        <!-- Panel para copiar reporte de errores -->
+        <div v-if="showCopyPanel" class="copy-panel">
+            <div class="copy-panel-content">
+                <div class="error-panel-header">
+                    <h3 class="text-xl font-bold text-blue-400">
+                        <i class="fas fa-copy mr-2"></i> Copiar Reporte de Errores
+                    </h3>
+                    <button @click="showCopyPanel = false" class="text-gray-400 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="p-4 flex-1 flex flex-col">
+                    <textarea ref="copyTextarea" class="copy-textarea" readonly>{{ formattedLogs }}</textarea>
+                    <div class="flex justify-between mt-4">
+                        <button @click="copyToClipboard" class="btn btn-primary">
+                            <i class="fas fa-copy mr-2"></i> Copiar al Portapapeles
+                        </button>
+                        <button @click="showCopyPanel = false" class="btn bg-gray-600 hover:bg-gray-700 text-white">
+                            <i class="fas fa-times mr-2"></i> Cerrar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Notificación de copiado exitoso -->
+        <div v-if="showCopySuccess" class="copy-success">
+            <i class="fas fa-check-circle mr-2"></i> ¡Reporte copiado al portapapeles!
         </div>
     </div>
     
@@ -583,6 +668,9 @@
             const showErrorPanel = ref(false);
             const errorLogs = ref([]);
             const scheduledTimerId = ref(null);
+            const showCopyPanel = ref(false);
+            const showCopySuccess = ref(false);
+            const copyTextarea = ref(null);
             
             // Horarios disponibles
             const availableHours = Array.from({length: 15}, (_, i) => {
@@ -597,6 +685,16 @@
                 if (status.value.text.includes("Error")) return "fas fa-exclamation-triangle";
                 if (status.value.text.includes("exitosa")) return "fas fa-check-circle";
                 return "fas fa-info-circle";
+            });
+            
+            // Formatear logs para copiar
+            const formattedLogs = computed(() => {
+                return logs.value.map(log => {
+                    let line = `${log.icon} ${log.message}`;
+                    if (log.details) line += `\n   Detalles: ${log.details}`;
+                    if (log.error) line += `\n   Error: ${log.error}`;
+                    return line;
+                }).join('\n\n');
             });
             
             // Configuración del deporte actual
@@ -683,6 +781,24 @@
                 showErrorPanel.value = true;
             };
             
+            // Mostrar panel para copiar reporte
+            const showCopyPanel = () => {
+                showCopyPanel.value = true;
+            };
+            
+            // Copiar al portapapeles
+            const copyToClipboard = async () => {
+                try {
+                    await navigator.clipboard.writeText(formattedLogs.value);
+                    showCopySuccess.value = true;
+                    setTimeout(() => {
+                        showCopySuccess.value = false;
+                    }, 3000);
+                } catch (err) {
+                    logger.error("Error al copiar al portapapeles", err);
+                }
+            };
+            
             // Seleccionar deporte
             const selectSport = (key) => { 
                 const data = SPORTS_DATA[key]; 
@@ -724,20 +840,6 @@
                     credentials.value = { ...defaultCredentials };
                     logger.info("🔄 Configuración restablecida");
                 }
-            };
-            
-            // Exportar logs
-            const exportLogs = () => {
-                const logText = logs.value.map(log => `${log.icon} ${log.message}${log.details ? '\n  ' + log.details : ''}${log.error ? '\n  Error: ' + log.error : ''}`).join('\n');
-                const blob = new Blob([logText], { type: 'text/plain' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `reservas-log-${new Date().toISOString().slice(0, 10)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
             };
             
             // Iniciar cuenta regresiva
@@ -1031,12 +1133,17 @@
                 hasScheduledExecution,
                 showErrorPanel,
                 errorLogs,
+                showCopyPanel,
+                showCopySuccess,
+                formattedLogs,
+                copyTextarea,
                 openErrorPanel,
+                showCopyPanel,
+                copyToClipboard,
                 selectSport, 
                 toggleHour, 
                 saveConfig,
                 resetConfig,
-                exportLogs,
                 executeBot,
                 cancelScheduledExecution
             };
