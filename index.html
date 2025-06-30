@@ -3,28 +3,117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Bot Reservas Inteligente v3.0</title>
+    <title>Bot Reservas Inteligente - Parque Hidalgo</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        :root { --primary: #2563eb; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
-        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
-        .card { background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05); }
-        .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; border-radius: 0.75rem; padding: 0.8rem 1.5rem; border: none; cursor: pointer; transition: all 0.2s ease; }
+        
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8;
+            min-height: 100vh;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 1rem;
+            box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            border-radius: 0.75rem;
+            padding: 0.8rem 1.5rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
         .btn-primary { background-color: var(--primary); color: white; }
         .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; transform: translateY(-2px); box-shadow: 0 7px 14px rgba(37,99,235,0.2); }
-        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-        .log-box { min-height: 350px; max-height: 350px; overflow-y: auto; background-color: #1e293b; border-radius: 0.75rem; padding: 1rem; font-family: 'SFMono-Regular', Consolas, monospace; }
-        .input-field { background-color: #f9fafb; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; transition: all 0.2s ease; width: 100%; }
-        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); outline: none; }
-        .tab-button { flex: 1; padding: 1rem; text-align: center; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border-bottom: 4px solid transparent; }
-        .tab-active { border-color: var(--primary); color: var(--primary); }
+        
+        .log-box {
+            min-height: 350px;
+            max-height: 350px;
+            overflow-y: auto;
+            background-color: #1e293b;
+            border-radius: 0.75rem;
+            padding: 1rem;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+        }
+        
+        .input-field {
+            background-color: #f9fafb;
+            border: 1px solid #d1d5db;
+            border-radius: 0.5rem;
+            padding: 0.75rem;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+        
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.2);
+            outline: none;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 4px solid transparent;
+        }
+        
+        .tab-active {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+        
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
         .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
         .modal-content { background: #1e293b; color: white; border-radius: 1rem; width: 90%; max-width: 800px; max-height: 80vh; display: flex; flex-direction: column; }
+        
+        .copy-success {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 2000;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(-20px);
+        }
+        .copy-success.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
     </style>
 </head>
 <body>
@@ -52,22 +141,26 @@
         <div v-if="activeTab === 'execute'">
             <div class="grid lg:grid-cols-2 gap-8">
                 <div class="space-y-6"><div class="card p-6 space-y-4"><h4 class="text-lg font-bold text-gray-800">Acciones del Bot</h4><button @click="executeBot(false)" :disabled="isBusy" class="btn btn-success w-full"><i class="fas fa-bolt mr-2"></i>Ejecutar Inmediatamente</button><button @click="executeBot(true)" :disabled="isBusy" class="btn btn-primary w-full"><i class="fas fa-clock mr-2"></i>Programar para 00:00</button><button v-if="scheduledTimerId" @click="cancelScheduledExecution" class="btn bg-red-500 hover:bg-red-600 text-white w-full"><i class="fas fa-times-circle mr-2"></i>Cancelar Programación</button></div><div class="card p-6" :class="status.color"><div class="font-bold text-lg flex items-center"><i :class="statusIcon" class="mr-3"></i>Estado: {{ status.text }}</div><div v-if="scheduledTimerId" id="countdown" class="text-3xl font-mono font-bold mt-2"></div></div></div>
-                <div class="card p-4"><div class="flex justify-between items-center mb-3 px-2"><h4 class="font-bold text-gray-800"><i class="fas fa-terminal mr-2"></i>Consola</h4><button @click="logs=[]" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded">Limpiar</button></div><div class="log-box" ref="logBox"><div v-for="log in logs" class="py-1 border-b border-gray-700/50 flex items-start gap-3"><span :class="log.color" class="w-5 text-center">{{ log.icon }}</span><span class="flex-1" :class="log.color" v-html="log.message"></span></div><div v-if="!logs.length" class="text-gray-500 text-center pt-20">Consola lista.</div></div></div>
+                <div class="card p-4"><div class="flex justify-between items-center mb-3 px-2"><h4 class="font-bold text-gray-800"><i class="fas fa-terminal mr-2"></i>Consola</h4><button @click="openErrorPanel" class="text-xs bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded-full font-semibold">Ver Errores ({{errorLogs.length}})</button><button @click="logs=[]" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded">Limpiar</button></div><div class="log-box" ref="logBox"><div v-for="log in logs" class="py-1 border-b border-gray-700/50 flex items-start gap-3"><span :class="log.color" class="w-5 text-center">{{ log.icon }}</span><span class="flex-1" :class="log.color" v-html="log.message"></span></div><div v-if="!logs.length" class="text-gray-500 text-center pt-20">Consola lista.</div></div></div>
+            </div>
+        </div>
+
+        <!-- Panel de Errores -->
+        <div v-if="showErrorPanel" class="modal-overlay">
+            <div class="modal-content">
+                <div class="flex justify-between items-center p-4 border-b border-gray-700"><h3 class="text-xl font-bold text-red-400"><i class="fas fa-bug mr-2"></i>Reporte de Errores</h3><button @click="showErrorPanel = false" class="text-gray-400 hover:text-white">×</button></div>
+                <div class="p-4 flex-1 overflow-y-auto"><div class="log-box" style="min-height: 0;"><div v-if="!errorLogs.length" class="text-gray-400 text-center pt-20">No se han detectado errores.</div><div v-for="error in errorLogs" class="py-2 border-b border-gray-700/50"><div class="font-bold text-red-400">[{{error.type}}] {{error.message}}</div><div class="text-sm text-gray-400">Paso: {{error.step}} | {{error.timestamp}}</div><pre class="text-xs text-gray-500 mt-1 whitespace-pre-wrap">{{error.details}}</pre></div></div></div>
+                <div class="p-4 border-t border-gray-700 flex justify-end"><button @click="copyErrorsToClipboard" class="btn btn-primary"><i class="fas fa-copy mr-2"></i>Copiar Reporte</button></div>
             </div>
         </div>
         
+        <!-- Notificación de Copiado -->
+        <div v-if="showCopySuccess" class="copy-success show"><i class="fas fa-check-circle mr-2"></i>¡Reporte copiado!</div>
     </div>
     
     <script>
     const { createApp, ref, computed, onMounted, nextTick } = Vue;
-
-    const SPORTS_DATA = { 
-        padel: { name: 'Pádel', emoji: '🎾', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4, team_name: "Equipo Padel" }, 
-        ajedrez: { name: 'Ajedrez', emoji: '♟️', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2, team_name: "Jugador" },
-        futbol: { name: 'Fútbol', emoji: '⚽', spaces: ['Cancha de fútbol 7'], players: 7, team_name: "Equipo Fut" }, 
-        basquetbol: { name: 'Básquetbol', emoji: '🏀', spaces: ['Cancha de Básquetbol'], players: 5, team_name: "Equipo Basquet" }, 
-        voleibol: { name: 'Voleibol', emoji: '🏐', spaces: ['Cancha de Voleibol'], players: 6, team_name: "Equipo Voley" } 
-    };
+    const SPORTS_DATA = { padel: { name: 'Pádel', emoji: '🎾', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4, team_name: "Equipo Padel" }, ajedrez: { name: 'Ajedrez', emoji: '♟️', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2, team_name: "Jugador" }, futbol: { name: 'Fútbol', emoji: '⚽', spaces: ['Cancha de fútbol 7'], players: 7, team_name: "Equipo Fut" }, basquetbol: { name: 'Básquetbol', emoji: '🏀', spaces: ['Cancha de Básquetbol'], players: 5, team_name: "Equipo Basquet" }, voleibol: { name: 'Voleibol', emoji: '🏐', spaces: ['Cancha de Voleibol'], players: 6, team_name: "Equipo Voley" } };
 
     createApp({
         setup() {
@@ -76,87 +169,81 @@
             const defaultConfig = { date: new Date(Date.now() + 1728e5).toISOString().split("T")[0], target_hours: ["07:00", "08:00"], activity_name: 'Pádel', space_name: 'Cancha uno', number_players: 4 };
             const defaultCredentials = { email: "aldofmh@gmail.com", password: "2970Ferr!" };
             
-            const config = ref(JSON.parse(localStorage.getItem('botConfigV2')) || defaultConfig);
-            const credentials = ref(JSON.parse(localStorage.getItem('botCredentialsV2')) || defaultCredentials);
+            const config = ref(JSON.parse(localStorage.getItem('botConfigV3')) || defaultConfig);
+            const credentials = ref(JSON.parse(localStorage.getItem('botCredentialsV3')) || defaultCredentials);
             
             const status = ref({ text: "Listo para la acción.", color: "bg-slate-100" });
             const logs = ref([]);
+            const errorLogs = ref([]);
             const isBusy = ref(false);
             const showPassword = ref(false);
             const saveButtonText = ref('Guardar Configuración');
             const scheduledTimerId = ref(null);
+            const showErrorPanel = ref(false);
+            const showCopySuccess = ref(false);
             const logBox = ref(null);
 
             const sports = Object.keys(SPORTS_DATA).map(key => ({ key, name: SPORTS_DATA[key].name, emoji: SPORTS_DATA[key].emoji }));
             const availableHours = Array.from({length: 15}, (_, i) => `${String(i + 7).padStart(2, '0')}:00`);
-
             const currentSportConfig = computed(() => Object.values(SPORTS_DATA).find(s => s.name === config.value.activity_name) || SPORTS_DATA.padel);
             const statusIcon = computed(() => isBusy.value ? "fas fa-sync-alt spinner" : status.value.text.includes("Programado") ? "fas fa-clock" : status.value.text.includes("Error") ? "fas fa-exclamation-triangle" : status.value.text.includes("exitosa") ? "fas fa-check-circle" : "fas fa-info-circle");
             
             const logger = {
                 info: (msg) => { logs.value.push({ message: msg, color: 'text-green-400', icon: '✅' }); scrollToBottom(); },
-                error: (msg, error) => { logs.value.push({ message: `<strong>${msg}</strong><br><small>${error?.message || error}</small>`, color: 'text-red-400', icon: '❌' }); scrollToBottom(); },
+                error: (msg, error, step) => {
+                    const errorObj = { message: msg, error: error?.message || String(error), details: error?.response, step: step, timestamp: new Date().toLocaleString() };
+                    errorLogs.value.push(errorObj);
+                    logs.value.push({ message: `<strong>${msg}</strong><br><small>${errorObj.error}</small>`, color: 'text-red-400', icon: '❌' });
+                    scrollToBottom();
+                },
                 warn: (msg) => { logs.value.push({ message: msg, color: 'text-yellow-400', icon: '⚠️' }); scrollToBottom(); },
                 step: (msg) => { logs.value.push({ message: `<strong>${msg}</strong>`, color: 'text-blue-400', icon: '➡️' }); scrollToBottom(); }
             };
 
-            const scrollToBottom = () => {
-                nextTick(() => {
-                    if (logBox.value) logBox.value.scrollTop = logBox.value.scrollHeight;
-                });
-            };
+            const scrollToBottom = () => nextTick(() => { if (logBox.value) logBox.value.scrollTop = logBox.value.scrollHeight; });
+            
+            const selectSport = (key) => { const data = SPORTS_DATA[key]; config.value.activity_name = data.name; config.value.space_name = data.spaces[0]; config.value.number_players = data.players; };
+            const toggleHour = (hour) => { const index = config.value.target_hours.indexOf(hour); if (index > -1) config.value.target_hours.splice(index, 1); else config.value.target_hours.push(hour); };
+            const openErrorPanel = () => { showErrorPanel.value = true; };
+            
+            const saveConfig = () => { localStorage.setItem('botConfigV3', JSON.stringify(config.value)); localStorage.setItem('botCredentialsV3', JSON.stringify(credentials.value)); saveButtonText.value = '¡Guardado!'; setTimeout(() => { saveButtonText.value = 'Guardar Configuración'; }, 2000); };
+            const resetConfig = () => { if (confirm("¿Restablecer?")) { config.value = defaultConfig; credentials.value = defaultCredentials; } };
 
-            onMounted(() => { /* Carga inicial en el setup de las refs */ });
-
-            const selectSport = (key) => {
-                const data = SPORTS_DATA[key];
-                config.value.activity_name = data.name;
-                config.value.space_name = data.spaces[0];
-                config.value.number_players = data.players;
-            };
-
-            const toggleHour = (hour) => {
-                const index = config.value.target_hours.indexOf(hour);
-                if (index > -1) config.value.target_hours.splice(index, 1);
-                else config.value.target_hours.push(hour);
-            };
-
-            const saveConfig = () => {
-                localStorage.setItem('botConfigV2', JSON.stringify(config.value));
-                localStorage.setItem('botCredentialsV2', JSON.stringify(credentials.value));
-                saveButtonText.value = '¡Guardado!';
-                setTimeout(() => { saveButtonText.value = 'Guardar Configuración'; }, 2000);
+            const copyErrorsToClipboard = async () => {
+                const report = errorLogs.value.map(e => `[${e.type}] - ${e.timestamp}\nPaso: ${e.step}\nError: ${e.message}\nDetalles: ${e.details || 'N/A'}`).join('\n\n');
+                if (!report) return;
+                try {
+                    await navigator.clipboard.writeText(report);
+                    showCopySuccess.value = true;
+                    setTimeout(() => { showCopySuccess.value = false; }, 2000);
+                } catch(e) { logger.error("Fallo al copiar", e); }
             };
 
             const runBotLogic = async () => {
-                isBusy.value = true;
-                logs.value = [];
+                isBusy.value = true; logs.value = []; errorLogs.value = [];
                 status.value = { text: "Ejecutando...", color: "bg-blue-100" };
                 logger.step("--- INICIANDO BOT ---");
-                
                 try {
-                    logger.step("1. Obteniendo token de sesión...");
+                    logger.step("1. Autenticando...");
                     const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials.value) });
                     if (!authRes.ok) throw new Error(`Autenticación fallida (Status: ${authRes.status})`);
                     const authData = await authRes.json();
-                    if (!authData.token) throw new Error("Token no recibido en la respuesta.");
+                    if (!authData.token) throw new Error("Token no recibido.");
                     const { token, user } = authData;
-                    logger.info("Token obtenido.");
+                    logger.info("Autenticación exitosa.");
 
-                    logger.step("2. Obteniendo IDs de sistema...");
+                    logger.step("2. Obteniendo IDs...");
                     const activitiesRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/activity', { headers: { 'Authorization': `Bearer ${token}` } });
                     const activities = await activitiesRes.json();
                     const activity = activities.find(a => a.name === config.value.activity_name);
-                    if (!activity) throw new Error(`Actividad no encontrada: ${config.value.activity_name}`);
                     const space = activity.spaces.find(s => s.name === config.value.space_name);
-                    if (!space) throw new Error(`Espacio no encontrado: ${config.value.space_name}`);
                     logger.info(`IDs: Actividad=${activity._id}, Espacio=${space._id}`);
                     
                     logger.step(`3. Verificando horarios para ${config.value.date}...`);
                     const scheduleRes = await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${config.value.date}`, { headers: { 'Authorization': `Bearer ${token}` } });
                     const scheduleData = await scheduleRes.json();
                     const availableSchedules = scheduleData.available || [];
-                    logger.info(`Horarios disponibles: ${availableSchedules.join(', ') || 'Ninguno'}`);
+                    logger.info(`Disponibles: ${availableSchedules.length > 0 ? availableSchedules.join(', ') : 'Ninguno'}`);
                     
                     let successCount = 0;
                     for (const hour of config.value.target_hours) {
@@ -171,60 +258,39 @@
                             const res = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/application', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
                             const resData = await res.json();
                             if(res.ok) { logger.info(`¡Reserva confirmada para ${hour}! Folio: ${resData.folio}`); successCount++; } 
-                            else { logger.error(`Fallo al reservar ${hour}`, resData); }
+                            else { logger.error(`Fallo al reservar ${hour}`, resData, 'Reserva'); }
                         } else { logger.warn(`Horario ${hour} no disponible.`); }
                         await new Promise(r => setTimeout(r, 800));
                     }
                     status.value = { text: `Proceso completado: ${successCount} reserva(s) exitosa(s).`, color: "bg-green-100" };
                 } catch (e) {
                     status.value = { text: `Error crítico: ${e.message}`, color: "bg-red-100" };
-                    logger.error("Error crítico", e);
-                } finally { isBusy.value = false; if(scheduledTimerId.value) { clearInterval(scheduledTimerId.value); scheduledTimerId.value = null; }}
+                    logger.error("Error crítico", e, 'General');
+                } finally { isBusy.value = false; }
             };
 
             const executeBot = (isScheduled) => {
                 if(isScheduled) {
-                    const midnight = new Date();
-                    midnight.setDate(midnight.getDate() + 1);
-                    midnight.setHours(0, 0, 1, 0); // 12:00:01 AM para dar margen
-
+                    const midnight = new Date(); midnight.setDate(midnight.getDate() + 1); midnight.setHours(0, 0, 1, 0);
                     const timeToMidnight = midnight.getTime() - Date.now();
                     status.value = { text: "Programado. Esperando a la medianoche...", color: "bg-blue-100" };
-                    
                     const updateCountdown = () => {
-                        const now = new Date();
-                        const t = midnight.getTime() - now.getTime();
-                        if (t <= 0) {
-                            clearInterval(scheduledTimerId.value);
-                            document.getElementById('countdown').textContent = "00:00:00";
-                            return;
-                        }
-                        const h = Math.floor(t / 36e5);
-                        const m = Math.floor(t % 36e5 / 6e4);
-                        const s = Math.floor(t % 6e4 / 1e3);
+                        const t = midnight.getTime() - new Date().getTime();
+                        if (t <= 0) { clearInterval(scheduledTimerId.value); document.getElementById('countdown').textContent = "00:00:00"; return; }
+                        const h = Math.floor(t / 36e5), m = Math.floor(t % 36e5 / 6e4), s = Math.floor(t % 6e4 / 1e3);
                         document.getElementById('countdown').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
                     };
                     updateCountdown();
                     scheduledTimerId.value = setInterval(updateCountdown, 1000);
-                    
                     setTimeout(runBotLogic, timeToMidnight);
-                } else {
-                    runBotLogic();
-                }
+                } else { runBotLogic(); }
             };
             
             const cancelScheduledExecution = () => {
-                if (scheduledTimerId.value) {
-                    clearTimeout(scheduledTimerId.value); // Limpia el timeout principal
-                    clearInterval(scheduledTimerId.value); // Limpia el intervalo del countdown
-                    scheduledTimerId.value = null;
-                    status.value = { text: "Programación cancelada.", color: "bg-yellow-100" };
-                    logger.warn("Ejecución programada cancelada por el usuario.");
-                    document.getElementById('countdown').textContent = "";
-                }
+                if (scheduledTimerId.value) { clearTimeout(scheduledTimerId.value); clearInterval(scheduledTimerId.value); scheduledTimerId.value = null; status.value = { text: "Programación cancelada.", color: "bg-yellow-100" }; logger.warn("Ejecución programada cancelada."); document.getElementById('countdown').textContent = ""; }
             };
 
-            return { activeTab, tabs, config, credentials, status, statusIcon, logs, isBusy, sports, currentSportConfig, availableHours, saveButtonText, showPassword, scheduledTimerId, logBox, selectSport, toggleHour, saveConfig, executeBot, cancelScheduledExecution, resetConfig };
+            return { activeTab, tabs, config, credentials, status, statusIcon, logs, errorLogs, isBusy, sports, currentSportConfig, availableHours, saveButtonText, showPassword, scheduledTimerId, logBox, selectSport, toggleHour, saveConfig, executeBot, cancelScheduledExecution, resetConfig, openErrorPanel, showErrorPanel, copyErrorsToClipboard, showCopyPanel, formattedLogs, showCopySuccess };
         }
     }).mount('#app');
     </script>
