@@ -3,501 +3,230 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Reservas Automatizado</title>
+    <title>Bot Reservas Inteligente v3.0</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        :root {
-            --color-primario: #2c3e50;
-            --color-secundario: #3498db;
-            --color-exito: #2ecc71;
-            --color-error: #e74c3c;
-            --color-fondo: #f5f7fa;
-        }
-        
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        body {
-            background-color: var(--color-fondo);
-            color: #333;
-            line-height: 1.6;
-            padding: 20px;
-        }
-        
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        header {
-            background: var(--color-primario);
-            color: white;
-            padding: 20px 0;
-            border-radius: 8px;
-            text-align: center;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        
-        h1 {
-            font-size: 2.5rem;
-        }
-        
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 25px;
-        }
-        
-        @media (min-width: 992px) {
-            .main-content {
-                grid-template-columns: 1fr 1fr;
-            }
-        }
-        
-        .panel {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
-        }
-        
-        .panel h2 {
-            color: var(--color-primario);
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid var(--color-secundario);
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 600;
-            color: var(--color-primario);
-        }
-        
-        input, select, button {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            font-size: 16px;
-        }
-        
-        button {
-            background: var(--color-secundario);
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            margin-top: 10px;
-        }
-        
-        button:hover {
-            background: #2980b9;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-        
-        button.secundario {
-            background: #95a5a6;
-        }
-        
-        button.peligro {
-            background: var(--color-error);
-        }
-        
-        #lista-reservas {
-            list-style: none;
-            max-height: 400px;
-            overflow-y: auto;
-            border: 1px solid #eee;
-            border-radius: 6px;
-            padding: 10px;
-        }
-        
-        #lista-reservas li {
-            background: #f9f9f9;
-            padding: 15px;
-            margin-bottom: 10px;
-            border-radius: 5px;
-            border-left: 4px solid var(--color-secundario);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .reserva-info {
-            flex: 1;
-        }
-        
-        .reserva-acciones {
-            display: flex;
-            gap: 8px;
-        }
-        
-        .reserva-acciones button {
-            width: auto;
-            padding: 8px 12px;
-        }
-        
-        /* Notificaciones */
-        #notificacion {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 15px 25px;
-            border-radius: 6px;
-            color: white;
-            font-weight: 600;
-            z-index: 1000;
-            opacity: 0;
-            transform: translateX(100%);
-            transition: all 0.4s ease;
-        }
-        
-        #notificacion.mostrar {
-            opacity: 1;
-            transform: translateX(0);
-        }
-        
-        #notificacion.exito {
-            background: var(--color-exito);
-        }
-        
-        #notificacion.error {
-            background: var(--color-error);
-        }
-        
-        /* Modales */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 2000;
-        }
-        
-        .modal.mostrar {
-            display: flex;
-        }
-        
-        .modal-contenido {
-            background: white;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 10px;
-            padding: 30px;
-            position: relative;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .cerrar-modal {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            background: none;
-            border: none;
-            font-size: 24px;
-            color: #777;
-            cursor: pointer;
-            width: auto;
-        }
-        
-        /* Reporte de errores */
-        #reporte-errores textarea {
-            width: 100%;
-            height: 150px;
-            margin: 15px 0;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 6px;
-            resize: vertical;
-        }
-        
-        .instrucciones {
-            background: #e3f2fd;
-            border-left: 4px solid var(--color-secundario);
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-            font-size: 14px;
-        }
-        
-        .contador {
-            font-weight: bold;
-            color: var(--color-secundario);
-            font-size: 1.2rem;
-            margin: 10px 0;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+        :root { --primary: #2563eb; --success: #10b981; --warning: #f59e0b; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background-color: #f0f4f8; }
+        .card { background: white; border-radius: 1rem; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.05); }
+        .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; border-radius: 0.75rem; padding: 0.8rem 1.5rem; border: none; cursor: pointer; transition: all 0.2s ease; }
+        .btn-primary { background-color: var(--primary); color: white; }
+        .btn-primary:hover:not(:disabled) { background-color: #1d4ed8; transform: translateY(-2px); box-shadow: 0 7px 14px rgba(37,99,235,0.2); }
+        .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+        .log-box { min-height: 350px; max-height: 350px; overflow-y: auto; background-color: #1e293b; border-radius: 0.75rem; padding: 1rem; font-family: 'SFMono-Regular', Consolas, monospace; }
+        .input-field { background-color: #f9fafb; border: 1px solid #d1d5db; border-radius: 0.5rem; padding: 0.75rem; transition: all 0.2s ease; width: 100%; }
+        .input-field:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37,99,235,0.2); outline: none; }
+        .tab-button { flex: 1; padding: 1rem; text-align: center; font-weight: 600; cursor: pointer; transition: all 0.2s ease; border-bottom: 4px solid transparent; }
+        .tab-active { border-color: var(--primary); color: var(--primary); }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .modal-content { background: #1e293b; color: white; border-radius: 1rem; width: 90%; max-width: 800px; max-height: 80vh; display: flex; flex-direction: column; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>Sistema de Reservas Automatizado</h1>
+    <div id="app" class="max-w-6xl mx-auto p-4 md:p-8">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-slate-800">Bot de Reservas Inteligente</h1>
+            <p class="mt-3 text-lg text-slate-600">La solución definitiva para el Parque Cultural Hidalguense</p>
         </header>
+
+        <div class="flex border-b border-gray-200 mb-8">
+            <button v-for="tab in tabs" @click="activeTab = tab.name" :class="[activeTab === tab.name ? 'tab-active' : 'text-gray-500 hover:text-gray-700', 'tab-button']">
+                <i :class="tab.icon" class="mr-2"></i> {{ tab.label }}
+            </button>
+        </div>
+
+        <!-- Pestaña de Configuración -->
+        <div v-if="activeTab === 'config'" class="space-y-6">
+            <div class="card p-6"><h3 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-user-lock mr-3 text-blue-500"></i>Credenciales</h3><div class="grid md:grid-cols-2 gap-4"><div><label class="font-medium text-gray-700">Email</label><input type="email" v-model="credentials.email" class="input-field mt-1"></div><div><label class="font-medium text-gray-700">Contraseña</label><div class="relative"><input :type="showPassword ? 'text' : 'password'" v-model="credentials.password" class="input-field mt-1 pr-10"><button @click="showPassword = !showPassword" class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-500"><i :class="showPassword ? 'far fa-eye-slash' : 'far fa-eye'"></i></button></div></div></div></div>
+            <div class="card p-6"><h3 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-cogs mr-3 text-blue-500"></i>Detalles de Reserva</h3><div class="mb-4"><label class="font-medium text-gray-700">Deporte</label><div class="grid grid-cols-3 md:grid-cols-5 gap-2 mt-2"><button v-for="sport in sports" @click="selectSport(sport.key)" :class="{'ring-2 ring-blue-500 bg-blue-50': config.activity_name === sport.name, 'bg-slate-100 hover:bg-slate-200': config.activity_name !== sport.name}" class="p-3 rounded-lg font-semibold transition flex flex-col items-center gap-2"><span class="text-2xl">{{ sport.emoji }}</span>{{ sport.name }}</button></div></div><div class="grid md:grid-cols-3 gap-4"><div><label class="font-medium text-gray-700">Cancha/Espacio</label><select v-model="config.space_name" class="input-field mt-1"><option v-for="space in currentSportConfig.spaces">{{ space }}</option></select></div><div><label class="font-medium text-gray-700">Fecha</label><input type="date" v-model="config.date" class="input-field mt-1"></div><div><label class="font-medium text-gray-700"># Jugadores</label><input type="number" v-model.number="config.number_players" class="input-field mt-1"></div></div></div>
+            <div class="card p-6"><h3 class="text-xl font-bold mb-4 flex items-center"><i class="fas fa-clock mr-3 text-blue-500"></i>Horarios por Prioridad</h3><div class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-8 gap-2"><button v-for="hour in availableHours" @click="toggleHour(hour)" :class="{'bg-blue-500 text-white shadow-md': config.target_hours.includes(hour), 'bg-slate-100 hover:bg-slate-200': !config.target_hours.includes(hour)}" class="p-3 rounded-lg font-semibold transition relative h-16">{{ hour }}<span v-if="config.target_hours.includes(hour)" class="absolute -top-2 -right-2 w-6 h-6 bg-blue-600 text-white text-xs rounded-full flex items-center justify-center border-2 border-white">{{ config.target_hours.indexOf(hour) + 1 }}</span></button></div></div>
+            <div class="flex justify-end"><button @click="saveConfig" class="btn btn-primary"><i class="fas fa-save mr-2"></i>{{ saveButtonText }}</button></div>
+        </div>
+
+        <!-- Pestaña de Ejecución -->
+        <div v-if="activeTab === 'execute'">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <div class="space-y-6"><div class="card p-6 space-y-4"><h4 class="text-lg font-bold text-gray-800">Acciones del Bot</h4><button @click="executeBot(false)" :disabled="isBusy" class="btn btn-success w-full"><i class="fas fa-bolt mr-2"></i>Ejecutar Inmediatamente</button><button @click="executeBot(true)" :disabled="isBusy" class="btn btn-primary w-full"><i class="fas fa-clock mr-2"></i>Programar para 00:00</button><button v-if="scheduledTimerId" @click="cancelScheduledExecution" class="btn bg-red-500 hover:bg-red-600 text-white w-full"><i class="fas fa-times-circle mr-2"></i>Cancelar Programación</button></div><div class="card p-6" :class="status.color"><div class="font-bold text-lg flex items-center"><i :class="statusIcon" class="mr-3"></i>Estado: {{ status.text }}</div><div v-if="scheduledTimerId" id="countdown" class="text-3xl font-mono font-bold mt-2"></div></div></div>
+                <div class="card p-4"><div class="flex justify-between items-center mb-3 px-2"><h4 class="font-bold text-gray-800"><i class="fas fa-terminal mr-2"></i>Consola</h4><button @click="logs=[]" class="text-xs bg-slate-200 hover:bg-slate-300 px-3 py-1 rounded">Limpiar</button></div><div class="log-box" ref="logBox"><div v-for="log in logs" class="py-1 border-b border-gray-700/50 flex items-start gap-3"><span :class="log.color" class="w-5 text-center">{{ log.icon }}</span><span class="flex-1" :class="log.color" v-html="log.message"></span></div><div v-if="!logs.length" class="text-gray-500 text-center pt-20">Consola lista.</div></div></div>
+            </div>
+        </div>
         
-        <div class="main-content">
-            <div class="panel">
-                <h2>Nueva Reserva</h2>
-                <div class="form-group">
-                    <label for="nombre">Nombre completo</label>
-                    <input type="text" id="nombre" placeholder="Ej: Juan Pérez">
-                </div>
-                
-                <div class="form-group">
-                    <label for="email">Correo electrónico</label>
-                    <input type="email" id="email" placeholder="Ej: juan@ejemplo.com">
-                </div>
-                
-                <div class="form-group">
-                    <label for="fecha">Fecha de reserva</label>
-                    <input type="date" id="fecha" min="2023-01-01">
-                </div>
-                
-                <div class="form-group">
-                    <label for="hora">Hora</label>
-                    <select id="hora">
-                        <option value="">Seleccione una hora</option>
-                        <option value="09:00">09:00 AM</option>
-                        <option value="10:00">10:00 AM</option>
-                        <option value="11:00">11:00 AM</option>
-                        <option value="12:00">12:00 PM</option>
-                        <option value="13:00">01:00 PM</option>
-                        <option value="14:00">02:00 PM</option>
-                        <option value="15:00">03:00 PM</option>
-                        <option value="16:00">04:00 PM</option>
-                        <option value="17:00">05:00 PM</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="personas">Número de personas</label>
-                    <input type="number" id="personas" min="1" max="20" value="1">
-                </div>
-                
-                <button id="btn-reservar">Realizar Reserva</button>
-            </div>
-            
-            <div class="panel">
-                <h2>Reservas Existentes</h2>
-                <div class="contador">Total reservas: <span id="contador-reservas">0</span></div>
-                <ul id="lista-reservas"></ul>
-                <button id="btn-exportar" class="secundario">Exportar Reservas</button>
-                <button id="btn-reporte" class="secundario">Reportar Problema</button>
-            </div>
-        </div>
     </div>
-    
-    <!-- Modal de Reporte de Errores (OCULTO POR DEFECTO) -->
-    <div id="reporte-errores" class="modal" style="display: none;">
-        <div class="modal-contenido">
-            <button class="cerrar-modal">&times;</button>
-            <h3>Reportar Problema</h3>
-            <p>Describe el error o inconveniente que encontraste:</p>
-            <textarea id="error-texto" placeholder="Ej: No puedo realizar reservas después de las 5 PM..."></textarea>
-            <button id="enviar-error">Enviar Reporte</button>
-        </div>
-    </div>
-    
-    <!-- Notificación flotante -->
-    <div id="notificacion"></div>
     
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Elementos del DOM
-            const nombreInput = document.getElementById('nombre');
-            const emailInput = document.getElementById('email');
-            const fechaInput = document.getElementById('fecha');
-            const horaSelect = document.getElementById('hora');
-            const personasInput = document.getElementById('personas');
-            const btnReservar = document.getElementById('btn-reservar');
-            const listaReservas = document.getElementById('lista-reservas');
-            const contadorReservas = document.getElementById('contador-reservas');
-            const btnExportar = document.getElementById('btn-exportar');
-            const btnReporte = document.getElementById('btn-reporte');
-            const modalErrores = document.getElementById('reporte-errores');
-            const cerrarModal = document.querySelector('.cerrar-modal');
-            const enviarErrorBtn = document.getElementById('enviar-error');
-            const errorTexto = document.getElementById('error-texto');
-            const notificacion = document.getElementById('notificacion');
+    const { createApp, ref, computed, onMounted, nextTick } = Vue;
+
+    const SPORTS_DATA = { 
+        padel: { name: 'Pádel', emoji: '🎾', spaces: ['Cancha uno', 'Cancha dos', 'Cancha tres'], players: 4, team_name: "Equipo Padel" }, 
+        ajedrez: { name: 'Ajedrez', emoji: '♟️', spaces: ['Mesa uno', 'Mesa dos', 'Mesa tres', 'Mesa cuatro', 'Mesa cinco'], players: 2, team_name: "Jugador" },
+        futbol: { name: 'Fútbol', emoji: '⚽', spaces: ['Cancha de fútbol 7'], players: 7, team_name: "Equipo Fut" }, 
+        basquetbol: { name: 'Básquetbol', emoji: '🏀', spaces: ['Cancha de Básquetbol'], players: 5, team_name: "Equipo Basquet" }, 
+        voleibol: { name: 'Voleibol', emoji: '🏐', spaces: ['Cancha de Voleibol'], players: 6, team_name: "Equipo Voley" } 
+    };
+
+    createApp({
+        setup() {
+            const activeTab = ref('config');
+            const tabs = [{ name: 'config', label: 'Configuración', icon: 'fas fa-cogs' }, { name: 'execute', label: 'Ejecutar', icon: 'fas fa-play' }];
+            const defaultConfig = { date: new Date(Date.now() + 1728e5).toISOString().split("T")[0], target_hours: ["07:00", "08:00"], activity_name: 'Pádel', space_name: 'Cancha uno', number_players: 4 };
+            const defaultCredentials = { email: "aldofmh@gmail.com", password: "2970Ferr!" };
             
-            // Configurar fecha mínima como hoy
-            const hoy = new Date().toISOString().split('T')[0];
-            fechaInput.min = hoy;
+            const config = ref(JSON.parse(localStorage.getItem('botConfigV2')) || defaultConfig);
+            const credentials = ref(JSON.parse(localStorage.getItem('botCredentialsV2')) || defaultCredentials);
             
-            // Datos de ejemplo para demostración
-            let reservas = JSON.parse(localStorage.getItem('reservas')) || [
-                { id: 1, nombre: "Ana García", email: "ana@ejemplo.com", fecha: "2023-12-15", hora: "14:00", personas: 3 },
-                { id: 2, nombre: "Carlos Martínez", email: "carlos@ejemplo.com", fecha: "2023-12-16", hora: "12:00", personas: 2 }
-            ];
+            const status = ref({ text: "Listo para la acción.", color: "bg-slate-100" });
+            const logs = ref([]);
+            const isBusy = ref(false);
+            const showPassword = ref(false);
+            const saveButtonText = ref('Guardar Configuración');
+            const scheduledTimerId = ref(null);
+            const logBox = ref(null);
+
+            const sports = Object.keys(SPORTS_DATA).map(key => ({ key, name: SPORTS_DATA[key].name, emoji: SPORTS_DATA[key].emoji }));
+            const availableHours = Array.from({length: 15}, (_, i) => `${String(i + 7).padStart(2, '0')}:00`);
+
+            const currentSportConfig = computed(() => Object.values(SPORTS_DATA).find(s => s.name === config.value.activity_name) || SPORTS_DATA.padel);
+            const statusIcon = computed(() => isBusy.value ? "fas fa-sync-alt spinner" : status.value.text.includes("Programado") ? "fas fa-clock" : status.value.text.includes("Error") ? "fas fa-exclamation-triangle" : status.value.text.includes("exitosa") ? "fas fa-check-circle" : "fas fa-info-circle");
             
-            // Actualizar lista de reservas
-            function actualizarListaReservas() {
-                listaReservas.innerHTML = '';
-                contadorReservas.textContent = reservas.length;
-                
-                reservas.forEach(reserva => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <div class="reserva-info">
-                            <strong>${reserva.nombre}</strong><br>
-                            ${reserva.fecha} a las ${reserva.hora}<br>
-                            ${reserva.personas} persona(s)
-                        </div>
-                        <div class="reserva-acciones">
-                            <button class="secundario editar" data-id="${reserva.id}">Editar</button>
-                            <button class="peligro eliminar" data-id="${reserva.id}">Eliminar</button>
-                        </div>
-                    `;
-                    listaReservas.appendChild(li);
+            const logger = {
+                info: (msg) => { logs.value.push({ message: msg, color: 'text-green-400', icon: '✅' }); scrollToBottom(); },
+                error: (msg, error) => { logs.value.push({ message: `<strong>${msg}</strong><br><small>${error?.message || error}</small>`, color: 'text-red-400', icon: '❌' }); scrollToBottom(); },
+                warn: (msg) => { logs.value.push({ message: msg, color: 'text-yellow-400', icon: '⚠️' }); scrollToBottom(); },
+                step: (msg) => { logs.value.push({ message: `<strong>${msg}</strong>`, color: 'text-blue-400', icon: '➡️' }); scrollToBottom(); }
+            };
+
+            const scrollToBottom = () => {
+                nextTick(() => {
+                    if (logBox.value) logBox.value.scrollTop = logBox.value.scrollHeight;
                 });
+            };
+
+            onMounted(() => { /* Carga inicial en el setup de las refs */ });
+
+            const selectSport = (key) => {
+                const data = SPORTS_DATA[key];
+                config.value.activity_name = data.name;
+                config.value.space_name = data.spaces[0];
+                config.value.number_players = data.players;
+            };
+
+            const toggleHour = (hour) => {
+                const index = config.value.target_hours.indexOf(hour);
+                if (index > -1) config.value.target_hours.splice(index, 1);
+                else config.value.target_hours.push(hour);
+            };
+
+            const saveConfig = () => {
+                localStorage.setItem('botConfigV2', JSON.stringify(config.value));
+                localStorage.setItem('botCredentialsV2', JSON.stringify(credentials.value));
+                saveButtonText.value = '¡Guardado!';
+                setTimeout(() => { saveButtonText.value = 'Guardar Configuración'; }, 2000);
+            };
+
+            const runBotLogic = async () => {
+                isBusy.value = true;
+                logs.value = [];
+                status.value = { text: "Ejecutando...", color: "bg-blue-100" };
+                logger.step("--- INICIANDO BOT ---");
                 
-                // Guardar en localStorage
-                localStorage.setItem('reservas', JSON.stringify(reservas));
-                
-                // Agregar event listeners a los botones
-                document.querySelectorAll('.eliminar').forEach(btn => {
-                    btn.addEventListener('click', eliminarReserva);
-                });
-                
-                document.querySelectorAll('.editar').forEach(btn => {
-                    btn.addEventListener('click', editarReserva);
-                });
-            }
-            
-            // Función para mostrar notificación
-            function mostrarNotificacion(mensaje, tipo) {
-                notificacion.textContent = mensaje;
-                notificacion.className = '';
-                notificacion.classList.add(tipo);
-                notificacion.classList.add('mostrar');
-                
-                setTimeout(() => {
-                    notificacion.classList.remove('mostrar');
-                }, 3000);
-            }
-            
-            // Evento para realizar reserva
-            btnReservar.addEventListener('click', function() {
-                if (!nombreInput.value || !emailInput.value || !fechaInput.value || !horaSelect.value) {
-                    mostrarNotificacion('Por favor complete todos los campos', 'error');
-                    return;
-                }
-                
-                const nuevaReserva = {
-                    id: Date.now(),
-                    nombre: nombreInput.value,
-                    email: emailInput.value,
-                    fecha: fechaInput.value,
-                    hora: horaSelect.value,
-                    personas: parseInt(personasInput.value)
-                };
-                
-                reservas.push(nuevaReserva);
-                actualizarListaReservas();
-                
-                // Limpiar formulario
-                nombreInput.value = '';
-                emailInput.value = '';
-                fechaInput.value = '';
-                horaSelect.value = '';
-                personasInput.value = '1';
-                
-                mostrarNotificacion('Reserva creada exitosamente!', 'exito');
-            });
-            
-            // Función para eliminar reserva
-            function eliminarReserva(e) {
-                const id = parseInt(e.target.dataset.id);
-                reservas = reservas.filter(reserva => reserva.id !== id);
-                actualizarListaReservas();
-                mostrarNotificacion('Reserva eliminada', 'exito');
-            }
-            
-            // Función para editar reserva
-            function editarReserva(e) {
-                const id = parseInt(e.target.dataset.id);
-                const reserva = reservas.find(r => r.id === id);
-                
-                if (reserva) {
-                    nombreInput.value = reserva.nombre;
-                    emailInput.value = reserva.email;
-                    fechaInput.value = reserva.fecha;
-                    horaSelect.value = reserva.hora;
-                    personasInput.value = reserva.personas;
+                try {
+                    logger.step("1. Obteniendo token de sesión...");
+                    const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(credentials.value) });
+                    if (!authRes.ok) throw new Error(`Autenticación fallida (Status: ${authRes.status})`);
+                    const authData = await authRes.json();
+                    if (!authData.token) throw new Error("Token no recibido en la respuesta.");
+                    const { token, user } = authData;
+                    logger.info("Token obtenido.");
+
+                    logger.step("2. Obteniendo IDs de sistema...");
+                    const activitiesRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/activity', { headers: { 'Authorization': `Bearer ${token}` } });
+                    const activities = await activitiesRes.json();
+                    const activity = activities.find(a => a.name === config.value.activity_name);
+                    if (!activity) throw new Error(`Actividad no encontrada: ${config.value.activity_name}`);
+                    const space = activity.spaces.find(s => s.name === config.value.space_name);
+                    if (!space) throw new Error(`Espacio no encontrado: ${config.value.space_name}`);
+                    logger.info(`IDs: Actividad=${activity._id}, Espacio=${space._id}`);
                     
-                    // Eliminar la reserva existente
-                    reservas = reservas.filter(r => r.id !== id);
-                    actualizarListaReservas();
+                    logger.step(`3. Verificando horarios para ${config.value.date}...`);
+                    const scheduleRes = await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${config.value.date}`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const scheduleData = await scheduleRes.json();
+                    const availableSchedules = scheduleData.available || [];
+                    logger.info(`Horarios disponibles: ${availableSchedules.join(', ') || 'Ninguno'}`);
                     
-                    mostrarNotificacion('Puede editar la reserva seleccionada', 'exito');
+                    let successCount = 0;
+                    for (const hour of config.value.target_hours) {
+                        logger.step(`4. Procesando reserva para ${hour}...`);
+                        const nextHour = String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0');
+                        const timeSlot = `${hour}:00-${nextHour}:00:00`;
+                        
+                        if (availableSchedules.includes(timeSlot)) {
+                            const payload = { solicitante_id: user._id, activity_id: activity._id, space_id: space._id, date: config.value.date, time_slot: timeSlot, number_players: config.value.number_players, responsive: true, equipment: false };
+                            if (config.value.activity_name !== 'Ajedrez') payload.teamName = currentSportConfig.value.team_name || "Equipo";
+                            
+                            const res = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/application', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }, body: JSON.stringify(payload) });
+                            const resData = await res.json();
+                            if(res.ok) { logger.info(`¡Reserva confirmada para ${hour}! Folio: ${resData.folio}`); successCount++; } 
+                            else { logger.error(`Fallo al reservar ${hour}`, resData); }
+                        } else { logger.warn(`Horario ${hour} no disponible.`); }
+                        await new Promise(r => setTimeout(r, 800));
+                    }
+                    status.value = { text: `Proceso completado: ${successCount} reserva(s) exitosa(s).`, color: "bg-green-100" };
+                } catch (e) {
+                    status.value = { text: `Error crítico: ${e.message}`, color: "bg-red-100" };
+                    logger.error("Error crítico", e);
+                } finally { isBusy.value = false; if(scheduledTimerId.value) { clearInterval(scheduledTimerId.value); scheduledTimerId.value = null; }}
+            };
+
+            const executeBot = (isScheduled) => {
+                if(isScheduled) {
+                    const midnight = new Date();
+                    midnight.setDate(midnight.getDate() + 1);
+                    midnight.setHours(0, 0, 1, 0); // 12:00:01 AM para dar margen
+
+                    const timeToMidnight = midnight.getTime() - Date.now();
+                    status.value = { text: "Programado. Esperando a la medianoche...", color: "bg-blue-100" };
+                    
+                    const updateCountdown = () => {
+                        const now = new Date();
+                        const t = midnight.getTime() - now.getTime();
+                        if (t <= 0) {
+                            clearInterval(scheduledTimerId.value);
+                            document.getElementById('countdown').textContent = "00:00:00";
+                            return;
+                        }
+                        const h = Math.floor(t / 36e5);
+                        const m = Math.floor(t % 36e5 / 6e4);
+                        const s = Math.floor(t % 6e4 / 1e3);
+                        document.getElementById('countdown').textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                    };
+                    updateCountdown();
+                    scheduledTimerId.value = setInterval(updateCountdown, 1000);
+                    
+                    setTimeout(runBotLogic, timeToMidnight);
+                } else {
+                    runBotLogic();
                 }
-            }
+            };
             
-            // Exportar reservas
-            btnExportar.addEventListener('click', function() {
-                const texto = reservas.map(r => 
-                    `• ${r.nombre} - ${r.fecha} ${r.hora} (${r.personas} pers.)`
-                ).join('\n');
-                
-                navigator.clipboard.writeText(texto)
-                    .then(() => {
-                        mostrarNotificacion('Reservas copiadas al portapapeles', 'exito');
-                    })
-                    .catch(err => {
-                        mostrarNotificacion('Error al copiar: ' + err, 'error');
-                    });
-            });
-            
-            // Control del modal de reportes
-            btnReporte.addEventListener('click', function() {
-                modalErrores.style.display = 'flex';
-            });
-            
-            cerrarModal.addEventListener('click', function() {
-                modalErrores.style.display = 'none';
-            });
-            
-            enviarErrorBtn.addEventListener('click', function() {
-                if (errorTexto.value.trim().length < 10) {
-                    mostrarNotificacion('Por favor describa el problema con más detalle', 'error');
-                    return;
+            const cancelScheduledExecution = () => {
+                if (scheduledTimerId.value) {
+                    clearTimeout(scheduledTimerId.value); // Limpia el timeout principal
+                    clearInterval(scheduledTimerId.value); // Limpia el intervalo del countdown
+                    scheduledTimerId.value = null;
+                    status.value = { text: "Programación cancelada.", color: "bg-yellow-100" };
+                    logger.warn("Ejecución programada cancelada por el usuario.");
+                    document.getElementById('countdown').textContent = "";
                 }
-                
-                // Simulación de envío
-                setTimeout(() => {
-                    errorTexto.value = '';
-                    modalErrores.style.display = 'none';
-                    mostrarNotificacion('Reporte enviado. ¡Gracias!', 'exito');
-                }, 800);
-            });
-            
-            // Cerrar modal al hacer clic fuera del contenido
-            modalErrores.addEventListener('click', function(e) {
-                if (e.target === modalErrores) {
-                    modalErrores.style.display = 'none';
-                }
-            });
-            
-            // Inicializar lista de reservas
-            actualizarListaReservas();
-        });
+            };
+
+            return { activeTab, tabs, config, credentials, status, statusIcon, logs, isBusy, sports, currentSportConfig, availableHours, saveButtonText, showPassword, scheduledTimerId, logBox, selectSport, toggleHour, saveConfig, executeBot, cancelScheduledExecution, resetConfig };
+        }
+    }).mount('#app');
     </script>
 </body>
 </html>
