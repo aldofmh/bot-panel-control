@@ -530,7 +530,9 @@
         SCHEDULE: "Horarios",
         ACTIVITY: "Actividad",
         RESERVATION: "Reserva",
-        SYSTEM: "Sistema"
+        SYSTEM: "Sistema",
+        NETWORK: "Red",
+        VALIDATION: "Validación"
     };
 
     createApp({
@@ -765,7 +767,7 @@
                 scheduledTimerId.value = setInterval(updateCountdown, 1000);
             };
             
-            // Lógica principal del bot (reservas reales)
+            // Lógica principal del bot (reservas reales) - MEJORADA
             const runBotLogic = async () => {
                 isBusy.value = true; 
                 logs.value = [];
@@ -779,62 +781,94 @@
                 logger.step("--- INICIANDO BOT DE RESERVAS ---");
                 
                 try {
-                    // 1. Iniciar sesión
-                    logger.step("1. Iniciando sesión en el sistema...");
-                    const authRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', {
+                    // 1. Validar credenciales antes de enviar
+                    logger.step("1. Validando credenciales...");
+                    
+                    if (!credentials.value.email || !credentials.value.password) {
+                        throw new Error("Email o contraseña no configurados");
+                    }
+                    
+                    if (!credentials.value.email.includes("@") || credentials.value.password.length < 6) {
+                        throw new Error("Credenciales inválidas. Verifique el formato.");
+                    }
+                    
+                    // 2. Iniciar sesión con manejo mejorado de errores
+                    logger.step("2. Iniciando sesión en el sistema...");
+                    
+                    const authResponse = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/auth/signin', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(credentials.value)
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            email: credentials.value.email,
+                            password: credentials.value.password
+                        })
                     });
                     
-                    if (!authRes.ok) {
-                        const errorText = await authRes.text();
-                        logger.error("Fallo en autenticación", `Status: ${authRes.status} - ${errorText}`, 1, ERROR_TYPES.AUTH);
-                        throw new Error(`Error en autenticación: ${authRes.status}`);
+                    // Manejo detallado de respuestas de autenticación
+                    if (authResponse.status === 401) {
+                        logger.error("Credenciales incorrectas", "Verifique su email y contraseña", 2, ERROR_TYPES.AUTH);
+                        throw new Error("Credenciales incorrectas");
                     }
                     
-                    const authData = await authRes.json();
+                    if (authResponse.status === 400) {
+                        const errorData = await authResponse.json();
+                        logger.error("Solicitud inválida", errorData.message || "Formato de datos incorrecto", 2, ERROR_TYPES.AUTH);
+                        throw new Error("Solicitud inválida");
+                    }
+                    
+                    if (!authResponse.ok) {
+                        const errorText = await authResponse.text();
+                        logger.error(`Error en autenticación: ${authResponse.status}`, errorText, 2, ERROR_TYPES.AUTH);
+                        throw new Error(`Error en autenticación: ${authResponse.status}`);
+                    }
+                    
+                    const authData = await authResponse.json();
+                    
                     if (!authData.token) {
-                        logger.error("No se recibió token de autenticación", authData, 1, ERROR_TYPES.AUTH);
+                        logger.error("Token no recibido", authData, 2, ERROR_TYPES.AUTH);
                         throw new Error("No se recibió token de autenticación");
                     }
+                    
                     const { token, user } = authData;
                     logger.info("✅ Autenticación exitosa. Token obtenido.");
                     
-                    // 2. Obtener información de actividades
-                    logger.step("2. Obteniendo información de actividades...");
+                    // 3. Obtener información de actividades
+                    logger.step("3. Obteniendo información de actividades...");
                     const activitiesRes = await fetch('https://reserva-parque.hidalgo.gob.mx/api/v1/activity', { 
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (!activitiesRes.ok) {
                         const errorText = await activitiesRes.text();
-                        logger.error("Error al obtener actividades", `Status: ${activitiesRes.status} - ${errorText}`, 2, ERROR_TYPES.ACTIVITY);
+                        logger.error("Error al obtener actividades", `Status: ${activitiesRes.status} - ${errorText}`, 3, ERROR_TYPES.ACTIVITY);
                         throw new Error(`Error al obtener actividades: ${activitiesRes.status}`);
                     }
                     
                     const activities = await activitiesRes.json();
                     const activity = activities.find(a => a.name === config.value.activity_name);
                     if (!activity) {
-                        logger.error(`Actividad no encontrada: ${config.value.activity_name}`, activities, 2, ERROR_TYPES.ACTIVITY);
+                        logger.error(`Actividad no encontrada: ${config.value.activity_name}`, activities, 3, ERROR_TYPES.ACTIVITY);
                         throw new Error(`Actividad no encontrada: ${config.value.activity_name}`);
                     }
                     const space = activity.spaces.find(s => s.name === config.value.space_name);
                     if (!space) {
-                        logger.error(`Espacio no encontrado: ${config.value.space_name}`, activity.spaces, 2, ERROR_TYPES.ACTIVITY);
+                        logger.error(`Espacio no encontrado: ${config.value.space_name}`, activity.spaces, 3, ERROR_TYPES.ACTIVITY);
                         throw new Error(`Espacio no encontrado: ${config.value.space_name}`);
                     }
                     logger.info(`✅ IDs obtenidos: Actividad ${activity._id}, Espacio ${space._id}`);
                     
-                    // 3. Verificar disponibilidad
-                    logger.step(`3. Verificando disponibilidad para ${config.value.date}...`);
+                    // 4. Verificar disponibilidad
+                    logger.step(`4. Verificando disponibilidad para ${config.value.date}...`);
                     const scheduleRes = await fetch(`https://reserva-parque.hidalgo.gob.mx/api/v1/reservation/schedules?space_id=${space._id}&date=${config.value.date}`, { 
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     
                     if (!scheduleRes.ok) {
                         const errorText = await scheduleRes.text();
-                        logger.error("Error al obtener horarios", `Status: ${scheduleRes.status} - ${errorText}`, 3, ERROR_TYPES.SCHEDULE);
+                        logger.error("Error al obtener horarios", `Status: ${scheduleRes.status} - ${errorText}`, 4, ERROR_TYPES.SCHEDULE);
                         throw new Error(`Error al obtener horarios: ${scheduleRes.status}`);
                     }
                     
@@ -842,10 +876,10 @@
                     const availableSchedules = scheduleData.available || [];
                     logger.info(`✅ Horarios disponibles: ${availableSchedules.length > 0 ? availableSchedules.join(', ') : 'Ninguno'}`);
                     
-                    // 4. Crear reservas
+                    // 5. Crear reservas
                     let successCount = 0;
                     for (const hour of config.value.target_hours) {
-                        logger.step(`4. Procesando reserva para ${hour}...`);
+                        logger.step(`5. Procesando reserva para ${hour}...`);
                         // Formato correcto: "HH:00-HH:00"
                         const nextHour = String(parseInt(hour.split(':')[0]) + 1).padStart(2, '0');
                         const timeSlot = `${hour}:00-${nextHour}:00`;
@@ -878,7 +912,7 @@
                             
                             if (!res.ok) {
                                 const errorText = await res.text();
-                                logger.error(`Error al reservar ${hour}`, `Status: ${res.status} - ${errorText}`, 4, ERROR_TYPES.RESERVATION);
+                                logger.error(`Error al reservar ${hour}`, `Status: ${res.status} - ${errorText}`, 5, ERROR_TYPES.RESERVATION);
                             } else {
                                 const resData = await res.json();
                                 logger.info(`✅ ¡Reserva confirmada para ${hour}! Folio: ${resData.folio}`);
@@ -901,12 +935,22 @@
                     logger.step("--- EJECUCIÓN FINALIZADA CON ÉXITO ---");
                     
                 } catch (e) {
-                    status.value = { 
-                        text: `❌ Error: ${e.message}`, 
-                        color: "bg-red-50 border-2 border-red-200 text-red-800",
-                        icon: "fas fa-exclamation-triangle"
-                    };
-                    logger.error(`Error crítico: ${e.message}`, e, 0, ERROR_TYPES.SYSTEM);
+                    // Manejo mejorado de diferentes tipos de errores
+                    if (e.name === "TypeError" && e.message.includes("Failed to fetch")) {
+                        status.value = { 
+                            text: "❌ Error de conexión", 
+                            color: "bg-red-50 border-2 border-red-200 text-red-800",
+                            icon: "fas fa-exclamation-triangle"
+                        };
+                        logger.error("Error de red", "No se pudo conectar al servidor", 0, ERROR_TYPES.NETWORK);
+                    } else {
+                        status.value = { 
+                            text: `❌ Error: ${e.message}`, 
+                            color: "bg-red-50 border-2 border-red-200 text-red-800",
+                            icon: "fas fa-exclamation-triangle"
+                        };
+                        logger.error(`Error crítico: ${e.message}`, e, 0, ERROR_TYPES.SYSTEM);
+                    }
                 } finally { 
                     isBusy.value = false; 
                     scheduledExecution.value = null;
